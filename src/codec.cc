@@ -6027,6 +6027,47 @@ napi_value getCodecCtxDesc(napi_env env, napi_callback_info info) {
   return result;
 }
 
+napi_value getCodecCtxLowres(napi_env env, napi_callback_info info) {
+  napi_status status;
+  napi_value result;
+  AVCodecContext* codec;
+
+  size_t argc = 0;
+  status = napi_get_cb_info(env, info, &argc, nullptr, nullptr, (void**) &codec);
+  CHECK_STATUS;
+  status = napi_create_int32(env, codec->lowres, &result);
+  CHECK_STATUS;
+
+  return result;
+}
+
+napi_value setCodecCtxLowres(napi_env env, napi_callback_info info) {
+  napi_status status;
+  napi_value result;
+  napi_valuetype type;
+  AVCodecContext* codec;
+
+  size_t argc = 1;
+  napi_value args[1];
+  status = napi_get_cb_info(env, info, &argc, args, nullptr, (void**) &codec);
+  CHECK_STATUS;
+  if (argc < 1) {
+    NAPI_THROW_ERROR("A value is required to set the lowres property.");
+  }
+  status = napi_typeof(env, args[0], &type);
+  CHECK_STATUS;
+  if (type != napi_number) {
+    NAPI_THROW_ERROR("A number is required to set the lowres property.");
+  }
+
+  status = napi_get_value_int32(env, args[0], &codec->lowres);
+  CHECK_STATUS;
+
+  status = napi_get_undefined(env, &result);
+  CHECK_STATUS;
+  return result;
+}
+
 napi_value getCodecCtxSubCharenc(napi_env env, napi_callback_info info) {
   napi_status status;
   napi_value result;
@@ -7141,13 +7182,16 @@ napi_status fromAVCodecContext(napi_env env, AVCodecContext* codec,
     { "codec_descriptor", nullptr, nullptr,
       encoding ? nullptr : getCodecCtxDesc, failBoth, nullptr,
       encoding ? napi_default : napi_enumerable, codec},
-    // TODO not exposing lowres ... it's on its way out
+    { "lowres", nullptr, nullptr,
+      encoding ? nullptr : getCodecCtxLowres,
+      encoding ? failEncoding : setCodecCtxLowres, nullptr,
+      encoding ? napi_default : (napi_property_attributes) (napi_writable | napi_enumerable), codec},
     // not exposing PTS correct stats - "not intended to be used by user apps"
+    // 120
     { "sub_charenc", nullptr, nullptr,
       encoding ? nullptr : getCodecCtxSubCharenc,
       encoding ? failEncoding : setCodecCtxSubCharenc, nullptr,
       encoding ? napi_default : (napi_property_attributes) (napi_writable | napi_enumerable), codec},
-    // 120
     { "sub_charenc_mode", nullptr, nullptr,
       encoding ? nullptr : getCodecCtxSubCharencMode, failBoth, nullptr,
       encoding ? napi_default : napi_enumerable, codec},
@@ -7178,9 +7222,9 @@ napi_status fromAVCodecContext(napi_env env, AVCodecContext* codec,
       getCodecHWFramesCtx,
       encoding ? setCodecHWFramesCtx : failDecoding, nullptr,
       encoding ? (napi_property_attributes) (napi_writable | napi_enumerable) : napi_enumerable, codec},
+    // 130
     { "trailing_padding", nullptr, nullptr, getCodecCtxTrailPad, setCodecCtxTrailPad, nullptr,
       (napi_property_attributes) (napi_writable | napi_enumerable), codec},
-    // 130
     { "max_pixels", nullptr, nullptr, getCodecCtxMaxPixels, setCodecCtxMaxPixels, nullptr,
       (napi_property_attributes) (napi_writable | napi_enumerable), codec},
     { "hw_device_ctx", nullptr, nullptr, getCodecHWDeviceCtx, nullptr, nullptr, napi_enumerable, codec},
@@ -7203,14 +7247,14 @@ napi_status fromAVCodecContext(napi_env env, AVCodecContext* codec,
     { "extractParams", nullptr, extractParams, nullptr, nullptr, nullptr, napi_enumerable, nullptr},
     { "useParams", nullptr, useParams, nullptr, nullptr, nullptr, napi_enumerable, nullptr},
     // Hidden values - to allow Object.assign to work
+    // 140
     { "params", nullptr, nullptr, nullptr, nop, undef, // Set for muxing
       napi_writable, nullptr},
     { "stream_index", nullptr, nullptr, nullptr, nop, undef, napi_writable, nullptr },
-    // 140
     { "demuxer", nullptr, nullptr, nullptr, nop, undef, napi_writable, nullptr},
     { "_CodecContext", nullptr, nullptr, nullptr, nullptr, extCodec, napi_default, nullptr }
   };
-  status = napi_define_properties(env, jsCodec, 142, desc);
+  status = napi_define_properties(env, jsCodec, 143, desc);
   PASS_STATUS;
 
   *result = jsCodec;
