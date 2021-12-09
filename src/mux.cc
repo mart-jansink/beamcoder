@@ -181,6 +181,11 @@ napi_value muxer(napi_env env, napi_callback_info info) {
 
 void openIOExecute(napi_env env, void* data) {
   openIOCarrier* c = (openIOCarrier*) data;
+
+  if (c->format->oformat->flags & AVFMT_NOFILE) {
+    return;
+  }
+
   int ret;
   if (c->format->pb == nullptr) {
     ret = avio_open2(&c->format->pb, c->format->url, c->flags, nullptr, &c->options);
