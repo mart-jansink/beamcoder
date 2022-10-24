@@ -31,7 +31,6 @@ extern "C" {
   #include <libavutil/imgutils.h>
 }
 
-void frameFinalizer(napi_env env, void* data, void* hint);
 void frameDataFinalizer(napi_env env, void* data, void* hint);
 void frameBufferFinalizer(napi_env env, void* data, void* hint);
 void frameBufferFree(void* opaque, uint8_t* data);

@@ -24,6 +24,7 @@
 
 #include "beamcoder_util.h"
 #include "packet.h"
+#include "subtitle.h"
 #include "frame.h"
 #include "codec.h"
 #include <vector>
@@ -63,6 +64,7 @@ struct decodeCarrier : carrier {
   AVCodecContext* decoder;
   std::vector<AVPacket*> packets;
   std::vector<AVFrame*> frames;
+  std::vector<AVSubtitle> subtitles;
   std::vector<napi_ref> packetRefs;
   ~decodeCarrier() {
     // printf("Decode carrier destructor.\n");
