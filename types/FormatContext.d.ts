@@ -115,8 +115,6 @@ export interface OutputFormat {
 	}>
 	/** Class for private context */
 	priv_class: PrivClass | null
-  /** size of private data so that it can be allocated */
-  priv_data_size: number
 }
 
 /**

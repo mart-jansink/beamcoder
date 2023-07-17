@@ -330,20 +330,6 @@ napi_value getIFormatRawCodecID(napi_env env, napi_callback_info info) {
   return result;
 }
 
-napi_value getOFormatPrivDataSize(napi_env env, napi_callback_info info) {
-  napi_status status;
-  napi_value result;
-  AVOutputFormat* oformat;
-
-  status = napi_get_cb_info(env, info, nullptr, nullptr, nullptr, (void**) &oformat);
-  CHECK_STATUS;
-
-  status = napi_create_int32(env, oformat->priv_data_size, &result);
-  CHECK_STATUS;
-
-  return result;
-}
-
 napi_value getIFormatPrivDataSize(napi_env env, napi_callback_info info) {
   napi_status status;
   napi_value result;
@@ -565,8 +551,6 @@ napi_status fromAVOutputFormat(napi_env env,
       nullptr, napi_enumerable, (void*) oformat }, // 10
     { "priv_class", nullptr, nullptr, getOFormatPrivClass, nullptr,
       nullptr, napi_enumerable, (void*) oformat },
-    { "priv_data_size", nullptr, nullptr, getOFormatPrivDataSize, nullptr,
-      nullptr, napi_enumerable, (void*) oformat },
     { "_oformat", nullptr, nullptr, nullptr, nullptr, extOFormat, napi_default, nullptr }
   };
   status = napi_define_properties(env, jsOFormat, 13, desc);
@@ -644,6 +628,10 @@ napi_value setFmtCtxOFormat(napi_env env, napi_callback_info info) {
   char* name;
   size_t strLen;
   const AVOutputFormat* fmt = nullptr;
+  // FIXME(jack): lmao hacks! This is an internal struct layout thing, very
+  // brittle, but FFmpeg doesn't provide an API to do what we need.
+  typedef struct { AVOutputFormat p; int priv_data_size; } FFOutputFormat;
+  FFOutputFormat* of;
   void* i = nullptr;
   bool found = false;
 
@@ -701,9 +689,10 @@ done:
   if ((fmtCtx->oformat == nullptr) || (found == false)) {
     NAPI_THROW_ERROR("Unable to find and/or set output format.");
   }
-  if (fmtCtx->oformat->priv_data_size > 0) {
+  of = (FFOutputFormat*)fmtCtx->oformat;
+  if (of->priv_data_size > 0) {
     av_freep(&fmtCtx->priv_data);
-    if (!(fmtCtx->priv_data = av_mallocz(fmtCtx->oformat->priv_data_size))) {
+    if (!(fmtCtx->priv_data = av_mallocz(of->priv_data_size))) {
       NAPI_THROW_ERROR("Failed to allocate memory for private data.");
     }
     if (fmtCtx->oformat->priv_class) {
@@ -1227,9 +1216,6 @@ napi_value getFmtCtxFlags(napi_env env, napi_callback_info info) {
   // try to interleave outputted packets by dts (using this flag can slow demuxing down)
   status = beam_set_bool(env, result, "SORT_DTS", fmtCtx->flags & AVFMT_FLAG_SORT_DTS);
   CHECK_STATUS;
-  // Enable use of private options by delaying codec open (this could be made default once all code is converted)
-  status = beam_set_bool(env, result, "PRIV_OPT", fmtCtx->flags & AVFMT_FLAG_PRIV_OPT);
-  CHECK_STATUS;
   // Enable fast, but inaccurate seeks for some formats
   status = beam_set_bool(env, result, "FAST_SEEK", fmtCtx->flags & AVFMT_FLAG_FAST_SEEK);
   CHECK_STATUS;
@@ -1335,12 +1321,6 @@ napi_value setFmtCtxFlags(napi_env env, napi_callback_info info) {
   if (present) { fmtCtx->flags = (flag) ?
     fmtCtx->flags | AVFMT_FLAG_SORT_DTS :
     fmtCtx->flags & ~AVFMT_FLAG_SORT_DTS; }
-  // Enable use of private options by delaying codec open (this could be made default once all code is converted)
-  status = beam_get_bool(env, args[0], "PRIV_OPT", &present, &flag);
-  CHECK_STATUS;
-  if (present) { fmtCtx->flags = (flag) ?
-    fmtCtx->flags | AVFMT_FLAG_PRIV_OPT :
-    fmtCtx->flags & ~AVFMT_FLAG_PRIV_OPT; }
   // Enable fast, but inaccurate seeks for some formats
   status = beam_get_bool(env, args[0], "FAST_SEEK", &present, &flag);
   CHECK_STATUS;
