@@ -553,7 +553,7 @@ napi_status fromAVOutputFormat(napi_env env,
       nullptr, napi_enumerable, (void*) oformat },
     { "_oformat", nullptr, nullptr, nullptr, nullptr, extOFormat, napi_default, nullptr }
   };
-  status = napi_define_properties(env, jsOFormat, 13, desc);
+  status = napi_define_properties(env, jsOFormat, 12, desc);
   PASS_STATUS;
 
   *result = jsOFormat;

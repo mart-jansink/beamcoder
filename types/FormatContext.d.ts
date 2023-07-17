@@ -194,8 +194,6 @@ export interface FormatContext {
 		BITEXACT?: boolean
 		/** try to interleave outputted packets by dts (using this flag can slow demuxing down) */
 		SORT_DTS?: boolean
-		/** Enable use of private options by delaying codec open (this could be made default once all code is converted) */
-		PRIV_OPT?: boolean
 		/** Enable fast, but inaccurate seeks for some formats */
 		FAST_SEEK?: boolean
 		/** Stop muxing when the shortest stream stops. */

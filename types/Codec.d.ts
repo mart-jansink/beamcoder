@@ -26,7 +26,6 @@ export interface Codec {
 		DRAW_HORIZ_BAND: boolean
 		/** Codec uses get_buffer() for allocating buffers and supports custom allocators. */
 		DR1: boolean
-		TRUNCATED: boolean
 		/**
 		 * Decoder requires flushing with NULL input at the end in order to
      * give the complete and correct output.
@@ -64,8 +63,6 @@ export interface Codec {
 		SLICE_THREADS: boolean
 		/** Codec supports changed parameters at any point. */
 		PARAM_CHANGE: boolean
-		/** Codec supports avctx->thread_count == 0 (auto). */
-		AUTO_THREADS: boolean
 		/** Audio encoder supports receiving a different number of samples in each call. */
 		VARIABLE_FRAME_SIZE: boolean
     /**
@@ -78,10 +75,6 @@ export interface Codec {
 		 * choice for probing.
 		 */
 		AVOID_PROBING: boolean
-    /** Codec is intra only. */
-		INTRA_ONLY: boolean
-		/** Codec is lossless. */
-		LOSSLESS: boolean
 		/** Codec is backed by a hardware implementation. Typically used to identify a non-hwaccel hardware decoder. */
 		HARDWARE: boolean
 		/**
