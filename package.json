@@ -1,12 +1,13 @@
 {
-  "name": "beamcoder",
-  "version": "0.7.1",
+  "name": "@roamhq/beamcoder",
+  "version": "0.8.0",
   "description": "Node.js native bindings to FFmpeg.",
   "main": "index.js",
   "types": "index.d.ts",
   "scripts": {
-    "preinstall": "node install_ffmpeg.js",
-    "install": "node-gyp rebuild",
+    "preinstall": "node ./scripts/install_ffmpeg.js",
+    "build": "node-gyp rebuild",
+    "make-prebuilt": "node ./scripts/make_prebuilt.js",
     "test": "tape test/*.js",
     "lint": "eslint **/*.js",
     "lint-html": "eslint **/*.js -f html -o ./reports/lint-results.html",
@@ -14,8 +15,17 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Streampunk/beamcoder.git"
+    "url": "git+https://github.com/WonderInventions/beamcoder.git"
   },
+  "bugs": {
+    "url": "https://github.com/WonderInventions/beamcoder/issues"
+  },
+  "homepage": "https://github.com/WonderInventions/beamcoder#readme",
+  "contributors": [
+    "Streampunk Media Ltd",
+    "Jack Duvall <jack@ro.am>"
+  ],
+  "license": "GPL-3.0-or-later",
   "keywords": [
     "FFmpeg",
     "libav",
@@ -27,18 +37,19 @@
     "transcode",
     "N-API"
   ],
-  "author": "Streampunk Media Ltd",
-  "license": "GPL-3.0-or-later",
-  "bugs": {
-    "url": "https://github.com/Streampunk/beamcoder/issues"
-  },
-  "homepage": "https://github.com/Streampunk/beamcoder#readme",
-  "dependencies": {
-    "bindings": "^1.5.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "eslint": "^8.9.0",
     "tape": "^5.5.2"
   },
-  "gypfile": true
+  "optionalDependencies": {
+    "@roamhq/beamcoder-win32-x64": "0.8.0"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "bindings.js",
+    "beamstreams.js",
+    "types/"
+  ]
 }

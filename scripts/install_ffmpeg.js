@@ -100,6 +100,7 @@ async function win32() {
     else throw e;
   });
   
+  // Check if ffmpeg binaries already downloaded
   const ffmpegFilename = 'ffmpeg-6.x-win64-shared';
   await access(`ffmpeg/${ffmpegFilename}`, fs.constants.R_OK).catch(async () => {
     const html = await getHTML('https://github.com/BtbN/FFmpeg-Builds/wiki/Latest', 'latest autobuilds');
@@ -127,6 +128,22 @@ async function win32() {
     let rs_shared = fs.createReadStream(`ffmpeg/${ffmpegFilename}.zip`);
     await inflate(rs_shared, 'ffmpeg', `${ffmpegFilename}`);
   });
+
+
+  // Move binaries to Release folder
+  const files = [
+    "avcodec-60.dll",
+    "avdevice-60.dll",
+    "avfilter-9.dll",
+    "avformat-60.dll",
+    "avutil-58.dll",
+    "postproc-57.dll",
+    "swresample-4.dll",
+    "swscale-7.dll",
+  ];
+  for (const file of files) {
+    await rename(`ffmpeg/${ffmpegFilename}/bin/${file}`, `build/Release/${file}`);
+  }
 }
 
 async function linux() {
@@ -138,16 +155,16 @@ async function linux() {
     console.error('libavcodec.so.60 is not installed.');
     result = 1;
   }
-  if (stdout.indexOf('libavformat.so.60') < 0) {
-    console.error('libavformat.so.60 is not installed.');
-    result = 1;
-  }
   if (stdout.indexOf('libavdevice.so.60') < 0) {
     console.error('libavdevice.so.60 is not installed.');
     result = 1;
   }
   if (stdout.indexOf('libavfilter.so.9') < 0) {
     console.error('libavfilter.so.9 is not installed.');
+    result = 1;
+  }
+  if (stdout.indexOf('libavformat.so.60') < 0) {
+    console.error('libavformat.so.60 is not installed.');
     result = 1;
   }
   if (stdout.indexOf('libavutil.so.58') < 0) {
@@ -168,9 +185,8 @@ async function linux() {
   }
 
   if (result === 1) {
-    console.log(`Try running the following (Ubuntu/Debian):
-sudo add-apt-repository ppa:jonathonf/ffmpeg-4
-sudo apt-get install libavcodec-dev libavformat-dev libavdevice-dev libavfilter-dev libavutil-dev libpostproc-dev libswresample-dev libswscale-dev`);
+    console.log("Try installing FFmpeg 6.0 through your distribution's package manager");
+    console.log("Alternatively, try commenting out the above checks and using FFmpeg 5.x");
     process.exit(1);
   }
   return result;

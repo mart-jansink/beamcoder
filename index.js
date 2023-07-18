@@ -19,7 +19,7 @@
   14 Ormiscaig, Aultbea, Achnasheen, IV22 2JJ  U.K.
 */
 
-const beamcoder = require('bindings')('beamcoder');
+const beamcoder = require('./bindings.js');
 const beamstreams = require('./beamstreams.js');
 
 const splash = `Aerostat Beam Coder  Copyright (C) 2019  Streampunk Media Ltd
