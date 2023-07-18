@@ -59,6 +59,21 @@
           "-l../ffmpeg/ffmpeg-6.x-win64-shared/lib/postproc",
           "-l../ffmpeg/ffmpeg-6.x-win64-shared/lib/swresample",
           "-l../ffmpeg/ffmpeg-6.x-win64-shared/lib/swscale"
+        ],
+        "copies": [
+          {
+            "destination": "build/Release/",
+            "files": [
+              "ffmpeg/ffmpeg-6.x-win64-shared/bin/avcodec-60.dll",
+              "ffmpeg/ffmpeg-6.x-win64-shared/bin/avdevice-60.dll",
+              "ffmpeg/ffmpeg-6.x-win64-shared/bin/avfilter-9.dll",
+              "ffmpeg/ffmpeg-6.x-win64-shared/bin/avformat-60.dll",
+              "ffmpeg/ffmpeg-6.x-win64-shared/bin/avutil-58.dll",
+              "ffmpeg/ffmpeg-6.x-win64-shared/bin/postproc-57.dll",
+              "ffmpeg/ffmpeg-6.x-win64-shared/bin/swresample-4.dll",
+              "ffmpeg/ffmpeg-6.x-win64-shared/bin/swscale-7.dll"
+            ]
+          }
         ]
     }],
     ['OS=="linux"', {

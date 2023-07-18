@@ -24,8 +24,9 @@ const fs = require('fs');
 const util = require('util');
 const https = require('https');
 const cp = require('child_process');
-const [ mkdir, access, rename, execFile, exec ] = // eslint-disable-line
-  [ fs.mkdir, fs.access, fs.rename, cp.execFile, cp.exec ].map(util.promisify);
+const [ mkdir, access, execFile, exec ] = // eslint-disable-line
+  [ fs.mkdir, fs.access, cp.execFile, cp.exec ].map(util.promisify);
+const { copyFile } = require('fs/promises');
 
 async function get(ws, url, name) {
   let received = 0;
@@ -99,6 +100,14 @@ async function win32() {
     if (e.code === 'EEXIST') return;
     else throw e;
   });
+  await mkdir('build').catch(e => {
+    if (e.code === 'EEXIST') return;
+    else throw e;
+  });
+  await mkdir('build/Release').catch(e => {
+    if (e.code === 'EEXIST') return;
+    else throw e;
+  });
   
   // Check if ffmpeg binaries already downloaded
   const ffmpegFilename = 'ffmpeg-6.x-win64-shared';
@@ -128,22 +137,6 @@ async function win32() {
     let rs_shared = fs.createReadStream(`ffmpeg/${ffmpegFilename}.zip`);
     await inflate(rs_shared, 'ffmpeg', `${ffmpegFilename}`);
   });
-
-
-  // Move binaries to Release folder
-  const files = [
-    "avcodec-60.dll",
-    "avdevice-60.dll",
-    "avfilter-9.dll",
-    "avformat-60.dll",
-    "avutil-58.dll",
-    "postproc-57.dll",
-    "swresample-4.dll",
-    "swscale-7.dll",
-  ];
-  for (const file of files) {
-    await rename(`ffmpeg/${ffmpegFilename}/bin/${file}`, `build/Release/${file}`);
-  }
 }
 
 async function linux() {
@@ -185,8 +178,8 @@ async function linux() {
   }
 
   if (result === 1) {
-    console.log("Try installing FFmpeg 6.0 through your distribution's package manager");
-    console.log("Alternatively, try commenting out the above checks and using FFmpeg 5.x");
+    console.log('Try installing FFmpeg 6.0 through your distribution\'s package manager');
+    console.log('Alternatively, try commenting out the above checks and using FFmpeg 5.x');
     process.exit(1);
   }
   return result;
