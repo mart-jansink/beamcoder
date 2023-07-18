@@ -77,19 +77,19 @@ async function getHTML(url, name) {
 }
 
 async function inflate(rs, folder, name) {
-  const unzip = require('unzipper');
-  const directory = await unzip.Open.file(`${folder}/${name}.zip`);
-  const directoryName = directory.files[0].path;
-  return new Promise((comp, err) => {
-    console.log(`Unzipping '${folder}/${name}.zip'.`);
-    rs.pipe(unzip.Extract({ path: folder }).on('close', () => {
-      fs.rename(`./${folder}/${directoryName}`, `./${folder}/${name}`, () => {
-        console.log(`Unzipping of '${folder}/${name}.zip' completed.`);
-        comp();
-      });
-    }));
-    rs.on('error', err);
-  });
+  const decompress = require('decompress');
+  return await decompress(
+    `${folder}/${name}.zip`,
+    `${folder}/${name}`,
+    {
+      map: file => {
+        // Remove leading folder from path
+        // (everything up to and including first /)
+        file.path = file.path.replace(/^.+?[/]/, '');
+        return file;
+      },
+    },
+  );
 }
 
 async function win32() {
@@ -100,16 +100,16 @@ async function win32() {
     else throw e;
   });
   
-  const ffmpegFilename = 'ffmpeg-5.x-win64-shared';
+  const ffmpegFilename = 'ffmpeg-6.x-win64-shared';
   await access(`ffmpeg/${ffmpegFilename}`, fs.constants.R_OK).catch(async () => {
     const html = await getHTML('https://github.com/BtbN/FFmpeg-Builds/wiki/Latest', 'latest autobuilds');
     const htmlStr = html.toString('utf-8');
     const autoPos = htmlStr.indexOf('<p><a href=');
     const endPos = htmlStr.indexOf('</div>', autoPos);
     const autoStr = htmlStr.substring(autoPos, endPos);
-    const sharedEndPos = autoStr.lastIndexOf('">win64-gpl-shared-5.');
+    const sharedEndPos = autoStr.lastIndexOf('">win64-gpl-shared-6.');
     if (sharedEndPos === -1)
-      throw new Error('Failed to find latest v4.x autobuild from "https://github.com/BtbN/FFmpeg-Builds/wiki/Latest"');
+      throw new Error('Failed to find latest v6.x autobuild from "https://github.com/BtbN/FFmpeg-Builds/wiki/Latest"');
     const startStr = '<p><a href="';
     const sharedStartPos = autoStr.lastIndexOf(startStr, sharedEndPos) + startStr.length;
     const downloadSource = autoStr.substring(sharedStartPos, sharedEndPos);
@@ -123,7 +123,7 @@ async function win32() {
         } else console.error(err);
       });
 
-    await exec('npm install unzipper --no-save');
+    await exec('npm install decompress --no-save');
     let rs_shared = fs.createReadStream(`ffmpeg/${ffmpegFilename}.zip`);
     await inflate(rs_shared, 'ffmpeg', `${ffmpegFilename}`);
   });
