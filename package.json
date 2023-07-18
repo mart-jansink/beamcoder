@@ -45,7 +45,8 @@
   },
   "optionalDependencies": {
     "@roamhq/beamcoder-win32-x64": "0.8.1",
-    "@roamhq/beamcoder-linux-x64": "0.8.0"
+    "@roamhq/beamcoder-linux-x64": "0.8.0",
+    "@roamhq/beamcoder-darwin-x64": "0.8.0"
   },
   "files": [
     "index.js",
