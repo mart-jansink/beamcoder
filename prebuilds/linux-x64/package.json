@@ -1,11 +1,11 @@
 {
-  "name": "@roamhq/beamcoder-win32-x64",
-  "version": "0.8.1",
-  "description": "The Windows 64-bit binary for beamcoder.",
+  "name": "@roamhq/beamcoder-linux-x64",
+  "version": "0.8.0",
+  "description": "The Linux 64-bit binary for beamcoder.",
   "repository": "https://github.com/WonderInventions/beamcoder",
   "license": "GPL-3.0-or-later",
   "os": [
-    "win32"
+    "linux"
   ],
   "cpu": [
     "x64"

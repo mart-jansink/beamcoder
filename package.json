@@ -44,7 +44,8 @@
     "tape": "^5.5.2"
   },
   "optionalDependencies": {
-    "@roamhq/beamcoder-win32-x64": "0.8.1"
+    "@roamhq/beamcoder-win32-x64": "0.8.1",
+    "@roamhq/beamcoder-linux-x64": "0.8.0"
   },
   "files": [
     "index.js",
