@@ -1,6 +1,6 @@
 {
   "name": "@roamhq/beamcoder",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Node.js native bindings to FFmpeg.",
   "main": "index.js",
   "types": "index.d.ts",
@@ -46,6 +46,7 @@
   "optionalDependencies": {
     "@roamhq/beamcoder-win32-x64": "0.8.1",
     "@roamhq/beamcoder-linux-x64": "0.8.0",
+    "@roamhq/beamcoder-darwin-arm64": "0.8.0",
     "@roamhq/beamcoder-darwin-x64": "0.8.0"
   },
   "files": [
