@@ -90,10 +90,10 @@
     }],
     ['OS=="mac"', {
       "include_dirs" : [
-        "/opt/homebrew/Cellar/ffmpeg/5.0/include"
+        "/opt/homebrew/Cellar/ffmpeg/6.0/include"
       ],
       "library_dirs": [
-        "/opt/homebrew/Cellar/ffmpeg/5.0/lib",
+        "/opt/homebrew/Cellar/ffmpeg/6.0/lib",
       ]
     }],
   ]

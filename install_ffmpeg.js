@@ -134,36 +134,36 @@ async function linux() {
   const { stdout } = await execFile('ldconfig', ['-p']).catch(console.error);
   let result = 0;
 
-  if (stdout.indexOf('libavcodec.so.59') < 0) {
-    console.error('libavcodec.so.59 is not installed.');
+  if (stdout.indexOf('libavcodec.so.60') < 0) {
+    console.error('libavcodec.so.60 is not installed.');
     result = 1;
   }
-  if (stdout.indexOf('libavformat.so.59') < 0) {
-    console.error('libavformat.so.59 is not installed.');
+  if (stdout.indexOf('libavformat.so.60') < 0) {
+    console.error('libavformat.so.60 is not installed.');
     result = 1;
   }
-  if (stdout.indexOf('libavdevice.so.59') < 0) {
-    console.error('libavdevice.so.59 is not installed.');
+  if (stdout.indexOf('libavdevice.so.60') < 0) {
+    console.error('libavdevice.so.60 is not installed.');
     result = 1;
   }
-  if (stdout.indexOf('libavfilter.so.8') < 0) {
-    console.error('libavfilter.so.8 is not installed.');
+  if (stdout.indexOf('libavfilter.so.9') < 0) {
+    console.error('libavfilter.so.9 is not installed.');
     result = 1;
   }
-  if (stdout.indexOf('libavutil.so.57') < 0) {
-    console.error('libavutil.so.57 is not installed.');
+  if (stdout.indexOf('libavutil.so.58') < 0) {
+    console.error('libavutil.so.58 is not installed.');
     result = 1;
   }
-  if (stdout.indexOf('libpostproc.so.56') < 0) {
-    console.error('libpostproc.so.56 is not installed.');
+  if (stdout.indexOf('libpostproc.so.57') < 0) {
+    console.error('libpostproc.so.57 is not installed.');
     result = 1;
   }
   if (stdout.indexOf('libswresample.so.4') < 0) {
     console.error('libswresample.so.4 is not installed.');
     result = 1;
   }
-  if (stdout.indexOf('libswscale.so.6') < 0) {
-    console.error('libswscale.so.6 is not installed.');
+  if (stdout.indexOf('libswscale.so.7') < 0) {
+    console.error('libswscale.so.7 is not installed.');
     result = 1;
   }
 
