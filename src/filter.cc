@@ -1559,6 +1559,17 @@ struct filterCarrier : carrier {
 };
 
 namespace {
+  napi_status isNull(napi_env env, napi_value value) {
+    napi_status status;
+    napi_valuetype type;
+
+    status = napi_typeof(env, value, &type);
+    if (status != napi_ok) return status;
+    if (type != napi_null) return napi_invalid_arg;
+
+    return napi_ok;
+  }
+
   napi_status isFrame(napi_env env, napi_value packet) {
     napi_status status;
     napi_value value;
@@ -1760,10 +1771,10 @@ napi_value filter(napi_env env, napi_callback_info info) {
   napi_value item;
   c->status = napi_get_element(env, args[0], 0, &item);
   if (c->status != napi_ok) {
-    REJECT_ERROR_RETURN("Expected an array or array-like object of source frame objects.",
+    REJECT_ERROR_RETURN("Expected an array or array-like object of source frame objects or null.",
       BEAMCODER_INVALID_ARGS);
   }
-  if (napi_ok == isFrame(env, item)) {
+  if ((napi_ok == isFrame(env, item)) || (napi_ok == isNull(env, item))) {
     // Simplest case of an array of frame objects
     uint32_t framesLen;
     if (isArray) {
@@ -1779,9 +1790,13 @@ napi_value filter(napi_env env, napi_callback_info info) {
     for (uint32_t f = 0; f < framesLen; ++f) {
       c->status = napi_get_element(env, args[0], f, &value);
       REJECT_RETURN;
-      c->status = isFrame(env, value);
+
+      c->status = isNull(env, value);
       if (c->status != napi_ok) {
-        REJECT_ERROR_RETURN("Expected an array whose elements must be of type frame.",
+        c->status = isFrame(env, value);
+      }
+      if (c->status != napi_ok) {
+        REJECT_ERROR_RETURN("Expected an array whose elements must be of type frame or null.",
           BEAMCODER_INVALID_ARGS);
       }
     }
@@ -1789,6 +1804,12 @@ napi_value filter(napi_env env, napi_callback_info info) {
     for (uint32_t f = 0; f < framesLen; ++f) {
       c->status = napi_get_element(env, args[0], f, &value);
       REJECT_RETURN;
+
+      if (isNull(env, value) == napi_ok) {
+        frames.push_back(nullptr);
+        continue;
+      }
+
       c->status = napi_create_reference(env, value, 1, &frameRef);
       REJECT_RETURN;
 
@@ -1853,15 +1874,25 @@ napi_value filter(napi_env env, napi_callback_info info) {
       for (uint32_t f = 0; f < framesLen; ++f) {
         c->status = napi_get_element(env, framesArrVal, f, &value);
         REJECT_RETURN; // Blow up here if not array or array-like
-        c->status = isFrame(env, value);
+
+        c->status = isNull(env, value);
         if (c->status != napi_ok) {
-          REJECT_ERROR_RETURN("Values in array must by of type frame.",
+          c->status = isFrame(env, value);
+        }
+        if (c->status != napi_ok) {
+          REJECT_ERROR_RETURN("Values in array must by of type frame or null.",
             BEAMCODER_INVALID_ARGS);
         }
       }
       for (uint32_t f = 0; f < framesLen; ++f) {
         c->status = napi_get_element(env, framesArrVal, f, &value);
         REJECT_RETURN;
+
+        if (isNull(env, value) == napi_ok) {
+          frames.push_back(nullptr);
+          continue;
+        }
+
         c->status = napi_create_reference(env, value, 1, &frameRef);
         REJECT_RETURN;
 
