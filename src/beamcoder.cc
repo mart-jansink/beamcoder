@@ -901,6 +901,7 @@ napi_value Init(napi_env env, napi_value exports) {
     DECLARE_NAPI_METHOD("bsfs", bsfs),
     DECLARE_NAPI_METHOD("packet", makePacket),
     DECLARE_NAPI_METHOD("frame", makeFrame),
+    DECLARE_NAPI_METHOD("subtitle", makeSubtitle),
     DECLARE_NAPI_METHOD("codecParameters", makeCodecParameters),
     DECLARE_NAPI_METHOD("demuxer", demuxer),
     DECLARE_NAPI_METHOD("muxer", muxer),
@@ -910,7 +911,7 @@ napi_value Init(napi_env env, napi_value exports) {
     { "AV_NOPTS_VALUE", nullptr, nullptr, nullptr, nullptr,
       noopts, napi_enumerable, nullptr }
   };
-  status = napi_define_properties(env, exports, 29, desc);
+  status = napi_define_properties(env, exports, 30, desc);
   CHECK_STATUS;
 
   avdevice_register_all();

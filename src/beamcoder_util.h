@@ -190,6 +190,7 @@ extern const beamEnum* beam_frame_side_data_type;
 extern const beamEnum* beam_logging_level;
 
 napi_value makeFrame(napi_env env, napi_callback_info info);
+napi_value makeSubtitle(napi_env env, napi_callback_info info);
 
 struct avBufRef {
   napi_env env;

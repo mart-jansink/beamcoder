@@ -24,6 +24,8 @@ extern "C" {
   #include <libavcodec/avcodec.h>
 }
 
+void subtitleDataFinalizer(napi_env env, void* data, void* hint);
+
 struct subtitleData {
   AVSubtitle subtitle;
   ~subtitleData() {
@@ -31,7 +33,8 @@ struct subtitleData {
     avsubtitle_free(&subtitle);
   }
 };
+
+napi_value makeSubtitle(napi_env env, napi_callback_info info);
 napi_status fromAVSubtitle(napi_env env, subtitleData* subtitle, napi_value* result);
-void subtitleDataFinalizer(napi_env env, void* data, void* hint);
 
 #endif // SUBTITLE_H

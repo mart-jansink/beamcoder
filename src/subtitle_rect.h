@@ -23,12 +23,17 @@ extern "C" {
   #include <libavcodec/avcodec.h>
 }
 
+void subtitleRectDataFinalizer(napi_env env, void* data, void* hint);
+
 struct subtitleRectData {
-  AVSubtitleRect subtitleRect;
+  AVSubtitleRect* subtitleRect = nullptr;
   unsigned index;
   int32_t extSize = 0;
+  ~subtitleRectData() {
+    // printf("Freeing subtitle rect at index = %i\n", index);
+  }
 };
+
 napi_status fromAVSubtitleRect(napi_env env, subtitleRectData* subtitleRect, napi_value* result);
-void subtitleRectDataFinalizer(napi_env env, void* data, void* hint);
 
 #endif // SUBTITLE_RECT_H
