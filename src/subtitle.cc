@@ -233,12 +233,12 @@ napi_value setSubtitleRects(napi_env env, napi_callback_info info) {
   av_freep(&subtitle->rects);
 
   subtitle->num_rects = numRects;
-  subtitle->rects = static_cast<AVSubtitleRect**>(av_calloc(numRects, sizeof(*subtitle->rects)));
+  subtitle->rects = (AVSubtitleRect**) av_calloc(numRects, sizeof(*subtitle->rects));
   if (!subtitle->rects) {
     NAPI_THROW_ERROR(avErrorMsg("Problem allocating subtitle rect: ", AVERROR(ENOMEM)));
   }
   for ( unsigned i = 0 ; i < numRects ; ++i ) {
-    subtitle->rects[i] = static_cast<AVSubtitleRect*>(av_mallocz(sizeof(*subtitle->rects[i])));
+    subtitle->rects[i] = (AVSubtitleRect*) av_mallocz(sizeof(*subtitle->rects[i]));
     if (!subtitle->rects[i]) {
       NAPI_THROW_ERROR(avErrorMsg("Problem allocating subtitle rect: ", AVERROR(ENOMEM)));
     }

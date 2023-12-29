@@ -61,12 +61,19 @@ void encoderFinalizer(napi_env env, void* data, void* hint);
 struct encodeCarrier : carrier {
   AVCodecContext* encoder;
   std::vector<AVFrame*> frames;
+  std::vector<AVSubtitle*> subtitles;
   std::vector<AVPacket*> packets;
   std::vector<napi_ref> frameRefs;
-  ~encodeCarrier() { }
+  std::vector<napi_ref> subtitleRefs;
+  ~encodeCarrier() {
+    // printf("Encode carrier destructor.\n");
+  }
 };
 
-napi_status isFrame(napi_env env, napi_value packet);
-AVFrame* getFrame(napi_env env, napi_value packet);
+napi_status isFrame(napi_env env, napi_value frame);
+AVFrame* getFrame(napi_env env, napi_value frame);
+
+napi_status isSubtitle(napi_env env, napi_value subtitle);
+AVSubtitle* getSubtitle(napi_env env, napi_value subtitle);
 
 #endif // ENCODE_H

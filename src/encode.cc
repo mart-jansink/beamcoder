@@ -61,7 +61,7 @@ napi_value encoder(napi_env env, napi_callback_info info) {
   CHECK_STATUS;
 
   if (!(hasName || hasID || hasParams)) {
-    NAPI_THROW_ERROR("Decoder must be identified with a 'codec_id', a 'name' or 'params'.");
+    NAPI_THROW_ERROR("Encoder must be identified with a 'codec_id', a 'name' or 'params'.");
   }
 
   if (hasParams) {
@@ -143,6 +143,13 @@ create:
       NAPI_THROW_ERROR(avErrorMsg("Failed to open audio encoder: ", ret));
     }
   }
+  else if (encoder->codec_type == AVMEDIA_TYPE_SUBTITLE) {
+    // Similarly, we should be able to immediately open subtitle encoders
+    ret = avcodec_open2(encoder, encoder->codec, nullptr);
+    if (ret) {
+      NAPI_THROW_ERROR(avErrorMsg("Failed to open subtitle encoder: ", ret));
+    }
+  }
 
   if (encoder != nullptr) return result;
 
@@ -162,60 +169,108 @@ void encoderFinalizer(napi_env env, void* data, void* hint) {
 
 void encodeExecute(napi_env env, void* data) {
   encodeCarrier* c = (encodeCarrier*) data;
-  int ret = 0;
+  int ret = 0, size;
   AVPacket* packet = nullptr;
   HR_TIME_POINT encodeStart = NOW;
 
-  for ( auto it = c->frames.cbegin() ; it != c->frames.cend() ; it++ ) {
-  bump:
-   ret = avcodec_send_frame(c->encoder, *it);
-   switch (ret) {
-     case AVERROR(EAGAIN):
-       //printf("Input is not accepted in the current state - user must read output with avcodec_receive_frame().\n");
-       packet = av_packet_alloc();
-       avcodec_receive_packet(c->encoder, packet);
-       c->packets.push_back(packet);
-       goto bump;
-     case AVERROR_EOF:
-       c->status = BEAMCODER_ERROR_EOF;
-       c->errorMsg = "The encoder has been flushed, and no new frames can be sent to it.";
-       return;
-     case AVERROR(EINVAL):
-       if ((ret = avcodec_open2(c->encoder, c->encoder->codec, nullptr))) {
-         c->status = BEAMCODER_ERROR_ALLOC_ENCODER;
-         c->errorMsg = avErrorMsg("Problem opening encoder: ", ret);
-         return;
-       }
-       goto bump;
-     case AVERROR(ENOMEM):
-       c->status = BEAMCODER_ERROR_ENOMEM;
-       c->errorMsg = "Failed to add frame to internal queue.";
-       return;
-     case 0:
-       //printf("Successfully sent frame to codec.\n");
-       break;
-     default:
-       c->status = BEAMCODER_ERROR_ENCODE;
-       c->errorMsg = avErrorMsg("Error sending frame: ", ret);
-       return;
-    }
-  } // loop through input frames
+  if (c->encoder->codec_type == AVMEDIA_TYPE_SUBTITLE) {
+    for ( auto it = c->subtitles.cbegin() ; it != c->subtitles.cend() ; it++ ) {
+      AVSubtitle* subtitle = *it;
 
-  do {
-    packet = av_packet_alloc();
-    ret = avcodec_receive_packet(c->encoder, packet);
-    if (ret == 0) {
-      c->packets.push_back(packet);
       packet = av_packet_alloc();
-    } else {
-      //printf("Receive packet got status %i\n", ret);
+      ret = av_new_packet(packet, (1024 * 1024));
+      if (ret < 0) {
+        c->status = BEAMCODER_ERROR_ENOMEM;
+        c->errorMsg = "Failed to allocate packet to encode subtitle.";
+        return;
+      }
+
+      size = avcodec_encode_subtitle(c->encoder, packet->data, packet->size, subtitle);
+      if (size < 0) {
+        ret = size;
+        av_packet_free(&packet);
+      }
+      else {
+        av_shrink_packet(packet, size);
+        packet->time_base = c->encoder->time_base;
+        packet->pts = packet->dts = av_rescale_q(subtitle->pts, AV_TIME_BASE_Q, packet->time_base);
+        packet->duration = av_rescale_q(subtitle->end_display_time, (AVRational){1,1000}, packet->time_base);
+        c->packets.push_back(packet);
+      }
+
+      switch (ret) {
+        case AVERROR_EOF:
+          c->status = BEAMCODER_ERROR_EOF;
+          c->errorMsg = "The encoder has been flushed, and no new subtitles can be sent to it.";
+          return;
+        case AVERROR_INVALIDDATA:
+          c->status = BEAMCODER_ERROR_DECODE;
+          c->errorMsg = "Invalid UTF-8 in encoded subtitles text.";
+          return;
+        case 0:
+          // printf("Successfully encoded subtitle.\n");
+          break;
+        default:
+          c->status = BEAMCODER_ERROR_DECODE;
+          c->errorMsg = avErrorMsg("Error sending subtitle: ", ret);
+          return;
+      }
     }
-  } while (ret == 0);
-  av_packet_free(&packet);
+  }
+  else {
+    for ( auto it = c->frames.cbegin() ; it != c->frames.cend() ; it++ ) {
+    bump:
+      ret = avcodec_send_frame(c->encoder, *it);
+      switch (ret) {
+        case AVERROR(EAGAIN):
+          //printf("Input is not accepted in the current state - user must read output with avcodec_receive_frame().\n");
+          packet = av_packet_alloc();
+          avcodec_receive_packet(c->encoder, packet);
+          c->packets.push_back(packet);
+          goto bump;
+        case AVERROR_EOF:
+          c->status = BEAMCODER_ERROR_EOF;
+          c->errorMsg = "The encoder has been flushed, and no new frames can be sent to it.";
+         return;
+       case AVERROR(EINVAL):
+          if ((ret = avcodec_open2(c->encoder, c->encoder->codec, nullptr))) {
+            c->status = BEAMCODER_ERROR_ALLOC_ENCODER;
+            c->errorMsg = avErrorMsg("Problem opening encoder: ", ret);
+            return;
+          }
+          goto bump;
+        case AVERROR(ENOMEM):
+          c->status = BEAMCODER_ERROR_ENOMEM;
+          c->errorMsg = "Failed to add frame to internal queue.";
+          return;
+        case 0:
+          //printf("Successfully sent frame to codec.\n");
+          break;
+        default:
+          c->status = BEAMCODER_ERROR_ENCODE;
+          c->errorMsg = avErrorMsg("Error sending frame: ", ret);
+          return;
+      }
+    } // loop through input frames
+
+    do {
+      packet = av_packet_alloc();
+      ret = avcodec_receive_packet(c->encoder, packet);
+      if (ret == 0) {
+        c->packets.push_back(packet);
+        packet = av_packet_alloc();
+      } else {
+        //printf("Receive packet got status %i\n", ret);
+      }
+    } while (ret == 0);
+    av_packet_free(&packet);
+  }
 
   c->totalTime = microTime(encodeStart);
   /* if (!c->frames.empty()) {
     printf("Finished encoding frame. First pts = %i\n", c->frames.front()->pts);
+  } else if (!c->subtitles.empty()) {
+    printf("Finished encoding subtitle. First pts = %i\n", c->subtitles.front()->pts);
   } else {
     printf("Flushing complete.\n");
   } */
@@ -227,6 +282,12 @@ void encodeComplete(napi_env env, napi_status asyncStatus, void* data) {
 
   for ( auto it = c->frameRefs.cbegin() ; it != c->frameRefs.cend() ; it++ ) {
     // printf("Deleting frame reference. First pts = %i\n", c->frames.front()->pts);
+    c->status = napi_delete_reference(env, *it);
+    REJECT_STATUS;
+  }
+
+  for ( auto it = c->subtitleRefs.cbegin() ; it != c->subtitleRefs.cend() ; it++ ) {
+    // printf("Deleting subtitle reference. First pts = %i\n", c->subtitles.front()->pts);
     c->status = napi_delete_reference(env, *it);
     REJECT_STATUS;
   }
@@ -275,8 +336,8 @@ napi_value encode(napi_env env, napi_callback_info info) {
   napi_value resourceName, promise, encoderJS, encoderExt, value;
   encodeCarrier* c = new encodeCarrier;
   bool isArray;
-  uint32_t framesLength;
-  napi_ref frameRef;
+  uint32_t elementsLength;
+  napi_ref elementRef;
 
   c->status = napi_create_promise(env, &c->_deferred, &promise);
   REJECT_RETURN;
@@ -292,8 +353,14 @@ napi_value encode(napi_env env, napi_callback_info info) {
   REJECT_RETURN;
 
   if (argc == 0) {
-    REJECT_ERROR_RETURN("Encode call requires one or more frames.",
-      BEAMCODER_INVALID_ARGS);
+    if (c->encoder->codec_type == AVMEDIA_TYPE_SUBTITLE) {
+      REJECT_ERROR_RETURN("Encode call requires one or more subtitles.",
+        BEAMCODER_INVALID_ARGS);
+    }
+    else {
+      REJECT_ERROR_RETURN("Encode call requires one or more frames.",
+        BEAMCODER_INVALID_ARGS);
+    }
   }
 
   args = (napi_value*) malloc(sizeof(napi_value) * argc);
@@ -303,40 +370,80 @@ napi_value encode(napi_env env, napi_callback_info info) {
   c->status = napi_is_array(env, args[0], &isArray);
   REJECT_RETURN;
   if (isArray) {
-    c->status = napi_get_array_length(env, args[0], &framesLength);
+    c->status = napi_get_array_length(env, args[0], &elementsLength);
     REJECT_RETURN;
-    for ( uint32_t x = 0 ; x < framesLength ; x++ ) {
-      c->status = napi_get_element(env, args[0], x, &value);
-      REJECT_RETURN;
-      c->status = isFrame(env,value);
-      if (c->status != napi_ok) {
-        REJECT_ERROR_RETURN("Add passed values is an array whose elements must be of type frame.",
-          BEAMCODER_INVALID_ARGS);
+    if (c->encoder->codec_type == AVMEDIA_TYPE_SUBTITLE) {
+      for ( uint32_t x = 0 ; x < elementsLength ; x++ ) {
+        c->status = napi_get_element(env, args[0], x, &value);
+        REJECT_RETURN;
+        c->status = isSubtitle(env,value);
+        if (c->status != napi_ok) {
+          REJECT_ERROR_RETURN("Add passed values is an array whose elements must be of type subtitle.",
+            BEAMCODER_INVALID_ARGS);
+        }
+      }
+      for ( uint32_t x = 0 ; x < elementsLength ; x++ ) {
+        c->status = napi_get_element(env, args[0], x, &value);
+        REJECT_RETURN;
+        // printf("Creating a reference to a subtitle.\n");
+        c->status = napi_create_reference(env, value, 1, &elementRef);
+        REJECT_RETURN;
+        c->subtitleRefs.push_back(elementRef);
+        c->subtitles.push_back(getSubtitle(env, value));
       }
     }
-    for ( uint32_t x = 0 ; x < framesLength ; x++ ) {
-      c->status = napi_get_element(env, args[0], x, &value);
-      REJECT_RETURN;
-      // printf("Creating a reference to a frame.\n");
-      c->status = napi_create_reference(env, value, 1, &frameRef);
-      REJECT_RETURN;
-      c->frameRefs.push_back(frameRef);
-      c->frames.push_back(getFrame(env, value));
+    else {
+      for ( uint32_t x = 0 ; x < elementsLength ; x++ ) {
+        c->status = napi_get_element(env, args[0], x, &value);
+        REJECT_RETURN;
+        c->status = isFrame(env,value);
+        if (c->status != napi_ok) {
+          REJECT_ERROR_RETURN("Add passed values is an array whose elements must be of type frame.",
+            BEAMCODER_INVALID_ARGS);
+        }
+      }
+      for ( uint32_t x = 0 ; x < elementsLength ; x++ ) {
+        c->status = napi_get_element(env, args[0], x, &value);
+        REJECT_RETURN;
+        // printf("Creating a reference to a frame.\n");
+        c->status = napi_create_reference(env, value, 1, &elementRef);
+        REJECT_RETURN;
+        c->frameRefs.push_back(elementRef);
+        c->frames.push_back(getFrame(env, value));
+      }
     }
   } else {
-    for ( uint32_t x = 0 ; x < argc ; x++ ) {
-      c->status = isFrame(env, args[x]);
-      if (c->status != napi_ok) {
-        REJECT_ERROR_RETURN("All passed values as arguments must be of type frame.",
-          BEAMCODER_INVALID_ARGS);
+    if (c->encoder->codec_type == AVMEDIA_TYPE_SUBTITLE) {
+      for ( uint32_t x = 0 ; x < argc ; x++ ) {
+        c->status = isSubtitle(env, args[x]);
+        if (c->status != napi_ok) {
+          REJECT_ERROR_RETURN("All passed values as arguments must be of type subtitle.",
+            BEAMCODER_INVALID_ARGS);
+        }
+      }
+      for ( uint32_t x = 0 ; x < argc ; x++ ) {
+        c->status = napi_create_reference(env, args[x], 1, &elementRef);
+        REJECT_RETURN;
+        c->subtitleRefs.push_back(elementRef);
+        c->subtitles.push_back(getSubtitle(env, args[x]));
+        // printf("Creating a reference to a subtitle. First pts = %i\n", c->subtitles.front()->pts);
       }
     }
-    for ( uint32_t x = 0 ; x < argc ; x++ ) {
-      c->status = napi_create_reference(env, args[x], 1, &frameRef);
-      REJECT_RETURN;
-      c->frameRefs.push_back(frameRef);
-      c->frames.push_back(getFrame(env, args[x]));
-      // printf("Creating a reference to a frame. First pts = %i\n", c->frames.front()->pts);
+    else {
+      for ( uint32_t x = 0 ; x < argc ; x++ ) {
+        c->status = isFrame(env, args[x]);
+        if (c->status != napi_ok) {
+          REJECT_ERROR_RETURN("All passed values as arguments must be of type frame.",
+            BEAMCODER_INVALID_ARGS);
+        }
+      }
+      for ( uint32_t x = 0 ; x < argc ; x++ ) {
+        c->status = napi_create_reference(env, args[x], 1, &elementRef);
+        REJECT_RETURN;
+        c->frameRefs.push_back(elementRef);
+        c->frames.push_back(getFrame(env, args[x]));
+        // printf("Creating a reference to a frame. First pts = %i\n", c->frames.front()->pts);
+      }
     }
   }
 
@@ -412,7 +519,7 @@ napi_value encode(napi_env env, napi_callback_info info) {
   return result;
 }; */
 
-napi_status isFrame(napi_env env, napi_value packet) {
+napi_status isFrame(napi_env env, napi_value frame) {
   napi_status status;
   napi_value value;
   bool result;
@@ -421,25 +528,25 @@ napi_status isFrame(napi_env env, napi_value packet) {
   int cmp;
   napi_valuetype type;
 
-  status = napi_typeof(env, packet, &type);
+  status = napi_typeof(env, frame, &type);
   if ((status != napi_ok) || (type != napi_object)) return napi_invalid_arg;
-  status = napi_is_array(env, packet, &result);
+  status = napi_is_array(env, frame, &result);
   if ((status != napi_ok) || (result == true)) return napi_invalid_arg;
 
-  status = napi_has_named_property(env, packet, "type", &result);
+  status = napi_has_named_property(env, frame, "type", &result);
   if ((status != napi_ok) || (result == false)) return napi_invalid_arg;
 
-  status = napi_has_named_property(env, packet, "_frame", &result);
+  status = napi_has_named_property(env, frame, "_frame", &result);
   if ((status != napi_ok) || (result == false)) return napi_invalid_arg;
 
-  status = napi_get_named_property(env, packet, "type", &value);
+  status = napi_get_named_property(env, frame, "type", &value);
   if (status != napi_ok) return status;
   status = napi_get_value_string_utf8(env, value, objType, 10, &typeLen);
   if (status != napi_ok) return status;
   cmp = strcmp("Frame", objType);
   if (cmp != 0) return napi_invalid_arg;
 
-  status = napi_get_named_property(env, packet, "_frame", &value);
+  status = napi_get_named_property(env, frame, "_frame", &value);
   if (status != napi_ok) return status;
   status = napi_typeof(env, value, &type);
   if (status != napi_ok) return status;
@@ -448,16 +555,64 @@ napi_status isFrame(napi_env env, napi_value packet) {
   return napi_ok;
 }
 
-AVFrame* getFrame(napi_env env, napi_value packet) {
+AVFrame* getFrame(napi_env env, napi_value subtitle) {
   napi_status status;
   napi_value value;
   frameData* result = nullptr;
-  status = napi_get_named_property(env, packet, "_frame", &value);
+  status = napi_get_named_property(env, subtitle, "_frame", &value);
   if (status != napi_ok) return nullptr;
   status = napi_get_value_external(env, value, (void**) &result);
   if (status != napi_ok) return nullptr;
 
   return result->frame;
+};
+
+napi_status isSubtitle(napi_env env, napi_value subtitle) {
+  napi_status status;
+  napi_value value;
+  bool result;
+  char objType[10];
+  size_t typeLen;
+  int cmp;
+  napi_valuetype type;
+
+  status = napi_typeof(env, subtitle, &type);
+  if ((status != napi_ok) || (type != napi_object)) return napi_invalid_arg;
+  status = napi_is_array(env, subtitle, &result);
+  if ((status != napi_ok) || (result == true)) return napi_invalid_arg;
+
+  status = napi_has_named_property(env, subtitle, "type", &result);
+  if ((status != napi_ok) || (result == false)) return napi_invalid_arg;
+
+  status = napi_has_named_property(env, subtitle, "_subtitle", &result);
+  if ((status != napi_ok) || (result == false)) return napi_invalid_arg;
+
+  status = napi_get_named_property(env, subtitle, "type", &value);
+  if (status != napi_ok) return status;
+  status = napi_get_value_string_utf8(env, value, objType, 10, &typeLen);
+  if (status != napi_ok) return status;
+  cmp = strcmp("Subtitle", objType);
+  if (cmp != 0) return napi_invalid_arg;
+
+  status = napi_get_named_property(env, subtitle, "_subtitle", &value);
+  if (status != napi_ok) return status;
+  status = napi_typeof(env, value, &type);
+  if (status != napi_ok) return status;
+  if (type != napi_external) return napi_invalid_arg;
+
+  return napi_ok;
+}
+
+AVSubtitle* getSubtitle(napi_env env, napi_value subtitle) {
+  napi_status status;
+  napi_value value;
+  subtitleData* result = nullptr;
+  status = napi_get_named_property(env, subtitle, "_subtitle", &value);
+  if (status != napi_ok) return nullptr;
+  status = napi_get_value_external(env, value, (void**) &result);
+  if (status != napi_ok) return nullptr;
+
+  return &result->subtitle;
 };
 
 napi_value flushEnc(napi_env env, napi_callback_info info) {
@@ -482,7 +637,12 @@ napi_value flushEnc(napi_env env, napi_callback_info info) {
       BEAMCODER_INVALID_ARGS);
   }
 
-  c->frames.push_back(nullptr);
+  if (c->encoder->codec_type == AVMEDIA_TYPE_SUBTITLE) {
+    c->subtitles.push_back(nullptr);
+  }
+  else {
+    c->frames.push_back(nullptr);
+  }
 
   c->status = napi_create_string_utf8(env, "EncodeFlush", NAPI_AUTO_LENGTH, &resourceName);
   REJECT_RETURN;
