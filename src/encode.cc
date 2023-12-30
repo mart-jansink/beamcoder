@@ -177,8 +177,13 @@ void encodeExecute(napi_env env, void* data) {
     for ( auto it = c->subtitles.cbegin() ; it != c->subtitles.cend() ; it++ ) {
       AVSubtitle* subtitle = *it;
 
+      int maxSize = 1024;
+      if ((subtitle->num_rects > 0) && (subtitle->rects[0]->type == AVSubtitleType::SUBTITLE_BITMAP)) {
+        maxSize *= 1024;
+      }
+
       packet = av_packet_alloc();
-      ret = av_new_packet(packet, (1024 * 1024));
+      ret = av_new_packet(packet, maxSize);
       if (ret < 0) {
         c->status = BEAMCODER_ERROR_ENOMEM;
         c->errorMsg = "Failed to allocate packet to encode subtitle.";
