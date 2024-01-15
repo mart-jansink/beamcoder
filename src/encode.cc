@@ -383,7 +383,7 @@ napi_value encode(napi_env env, napi_callback_info info) {
         REJECT_RETURN;
         c->status = isSubtitle(env,value);
         if (c->status != napi_ok) {
-          REJECT_ERROR_RETURN("Add passed values is an array whose elements must be of type subtitle.",
+          REJECT_ERROR_RETURN("All passed values is an array whose elements must be of type subtitle.",
             BEAMCODER_INVALID_ARGS);
         }
       }
@@ -403,7 +403,7 @@ napi_value encode(napi_env env, napi_callback_info info) {
         REJECT_RETURN;
         c->status = isFrame(env,value);
         if (c->status != napi_ok) {
-          REJECT_ERROR_RETURN("Add passed values is an array whose elements must be of type frame.",
+          REJECT_ERROR_RETURN("All passed values is an array whose elements must be of type frame.",
             BEAMCODER_INVALID_ARGS);
         }
       }
@@ -643,7 +643,7 @@ napi_value flushEnc(napi_env env, napi_callback_info info) {
   }
 
   if (c->encoder->codec_type == AVMEDIA_TYPE_SUBTITLE) {
-    c->subtitles.push_back(nullptr);
+    // subtitle encoders don't have to be flushed
   }
   else {
     c->frames.push_back(nullptr);
