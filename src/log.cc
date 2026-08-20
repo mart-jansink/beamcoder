@@ -5,7 +5,6 @@
 
 extern "C" {
   #include <libavutil/log.h>
-	#include <libavutil/bprint.h>
 }
 
 std::unordered_map<int, std::string> beam_logging_level_fmap = {
@@ -83,29 +82,21 @@ void av_log_custom_callback(void* ptr, int level, const char* fmt, va_list vl)
 {
 		int av_log_level = av_log_get_level();
     static int print_prefix = 1;
-    static int count;
-    static char prev[LINE_SZ];
-    AVBPrint part[4];
     char line[LINE_SZ];
-    static int is_atty;
-    int type[2];
-    unsigned tint = 0;
 
     if (level >= 0) {
-        tint = level & 0xff00;
         level &= 0xff;
     }
 
     if (level > av_log_level)
         return;
 		av_log_format_line(ptr, level, fmt, vl, line, sizeof(line), &print_prefix);
-		
+
 		logCarrier* c = new logCarrier;
 		c->msg = line;
 		c->level = level;
-    napi_status status;
-    
-		status = napi_call_threadsafe_function(threadSafeFunction, c, napi_tsfn_nonblocking);	
+
+		napi_call_threadsafe_function(threadSafeFunction, c, napi_tsfn_nonblocking);
 
     return;
 }
