@@ -865,7 +865,8 @@ napi_value Init(napi_env env, napi_value exports) {
     DECLARE_NAPI_METHOD("governor", governor),
     DECLARE_NAPI_METHOD("format", makeFormat),
     DECLARE_NAPI_METHOD("decoder", decoder),
-    DECLARE_NAPI_METHOD("filterer", filterer), // 10
+    // 10
+    DECLARE_NAPI_METHOD("filterer", filterer),
     DECLARE_NAPI_METHOD("encoder", encoder),
     DECLARE_NAPI_METHOD("codecs", codecs),
     DECLARE_NAPI_METHOD("decoders", decoders),
@@ -875,7 +876,8 @@ napi_value Init(napi_env env, napi_value exports) {
     DECLARE_NAPI_METHOD("pix_fmts", pix_fmts),
     DECLARE_NAPI_METHOD("sample_fmts", sampleFormats),
     DECLARE_NAPI_METHOD("protocols", protocols),
-    DECLARE_NAPI_METHOD("filters", filters), // 20
+    // 20
+    DECLARE_NAPI_METHOD("filters", filters),
     DECLARE_NAPI_METHOD("bsfs", bsfs),
     DECLARE_NAPI_METHOD("packet", makePacket),
     DECLARE_NAPI_METHOD("frame", makeFrame),
@@ -886,10 +888,11 @@ napi_value Init(napi_env env, napi_value exports) {
     DECLARE_NAPI_METHOD("guessFormat", guessFormat),
     { "AV_INPUT_BUFFER_PADDING_SIZE", nullptr, nullptr, nullptr, nullptr,
       padSize, napi_enumerable, nullptr },
+    // 30
     { "AV_NOPTS_VALUE", nullptr, nullptr, nullptr, nullptr,
       noopts, napi_enumerable, nullptr }
   };
-  status = napi_define_properties(env, exports, 30, desc);
+  status = napi_define_properties(env, exports, 31, desc);
   CHECK_STATUS;
 
   avdevice_register_all();

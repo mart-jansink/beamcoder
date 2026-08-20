@@ -426,9 +426,9 @@ napi_status fromAVSubtitleRect(napi_env env, subtitleRectData* r, napi_value* re
       (napi_property_attributes) (napi_writable | napi_enumerable), r },
     { "text", nullptr, nullptr, getSubtitleRectText, setSubtitleRectText, nullptr,
       (napi_property_attributes) (napi_writable | napi_enumerable), r },
-    // 10
     { "ass", nullptr, nullptr, getSubtitleRectAss, setSubtitleRectAss, nullptr,
       (napi_property_attributes) (napi_writable | napi_enumerable), r },
+    // 10
     { "flags", nullptr, nullptr, getSubtitleRectFlags, nullptr, nullptr,
       (napi_property_attributes) (napi_enumerable), r },
     { "_subtitleRect", nullptr, nullptr, nullptr, nullptr, extSubtitleRect, napi_default, nullptr }

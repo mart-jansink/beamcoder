@@ -1686,7 +1686,7 @@ napi_value codecParToJSON(napi_env env, napi_callback_info info) {
   status = napi_create_object(env, &result);
   CHECK_STATUS;
 
-  napi_property_descriptor desc[35];
+  napi_property_descriptor desc[30];
   DECLARE_GETTER3("type", true, getCodecParTypeName, c);
   DECLARE_GETTER3("codec_type", true, getCodecParCodecType, c);
   DECLARE_GETTER3("codec_id", true, getCodecParCodecID, c);
@@ -1696,8 +1696,8 @@ napi_value codecParToJSON(napi_env env, napi_callback_info info) {
   DECLARE_GETTER3("format", c->format >= 0, getCodecParFormat, c);
   DECLARE_GETTER3("bit_rate", c->bit_rate > 0, getCodecParBitRate, c);
   DECLARE_GETTER3("bits_per_coded_sample", c->bits_per_coded_sample > 0, getCodecParBitsPerCodedSmp, c);
-    // 10
   DECLARE_GETTER3("bits_per_raw_sample", c->bits_per_raw_sample > 0, getCodecParBitsPerRawSmp, c);
+  // 10
   DECLARE_GETTER3("profile", c->profile != AV_PROFILE_UNKNOWN, getCodecParProfile, c);
   DECLARE_GETTER3("level", c->level != AV_LEVEL_UNKNOWN, getCodecParLevel, c);
   DECLARE_GETTER3("width", c->width != 0, getCodecParWidth, c);
@@ -1709,8 +1709,8 @@ napi_value codecParToJSON(napi_env env, napi_callback_info info) {
   DECLARE_GETTER3("color_range", c->color_range != AVCOL_RANGE_UNSPECIFIED, getCodecParColorRange, c);
   DECLARE_GETTER3("color_primaries", c->color_primaries != AVCOL_PRI_UNSPECIFIED, getCodecParColorPrims, c);
   DECLARE_GETTER3("color_trc", c->color_trc != AVCOL_TRC_UNSPECIFIED, getCodecParColorTrc, c);
-    // 20
   DECLARE_GETTER3("color_space", c->color_space != AVCOL_SPC_UNSPECIFIED, getCodecParColorSpace, c);
+  // 20
   DECLARE_GETTER3("chroma_location", c->chroma_location != AVCHROMA_LOC_UNSPECIFIED, getCodecParChromaLoc, c);
   DECLARE_GETTER3("video_delay", c->video_delay != 0, getCodecParVideoDelay, c);
   DECLARE_GETTER3("channel_layout", c->ch_layout.nb_channels != 0, getCodecParChanLayout, c);
@@ -1720,8 +1720,8 @@ napi_value codecParToJSON(napi_env env, napi_callback_info info) {
   DECLARE_GETTER3("frame_size", c->frame_size > 0, getCodecParFrameSize, c);
   DECLARE_GETTER3("initial_padding", c->initial_padding > 0, getCodecParInitialPad, c);
   DECLARE_GETTER3("trailing_padding", c->trailing_padding > 0, getCodecParTrailingPad, c);
-    // 30
   DECLARE_GETTER3("seek_preroll", c->seek_preroll > 0, getCodecParSeekPreroll, c);
+  // 30
 
   status = napi_define_properties(env, result, count, desc);
   CHECK_STATUS;
@@ -1758,6 +1758,7 @@ napi_status fromAVCodecParameters(napi_env env, AVCodecParameters* c, bool ownAl
       (napi_property_attributes) (napi_writable | napi_enumerable), c },
     { "bits_per_raw_sample", nullptr, nullptr, getCodecParBitsPerRawSmp, setCodecParBitsPerRawSmp, nullptr,
       (napi_property_attributes) (napi_writable | napi_enumerable), c }, // 10
+    // 10
     { "profile", nullptr, nullptr, getCodecParProfile, setCodecParProfile, nullptr,
       (napi_property_attributes) (napi_writable | napi_enumerable), c },
     { "level", nullptr, nullptr, getCodecParLevel, setCodecParLevel, nullptr,
@@ -1778,6 +1779,7 @@ napi_status fromAVCodecParameters(napi_env env, AVCodecParameters* c, bool ownAl
       (napi_property_attributes) (napi_writable | napi_enumerable), c },
     { "color_space", nullptr, nullptr, getCodecParColorSpace, setCodecParColorSpace, nullptr,
       (napi_property_attributes) (napi_writable | napi_enumerable), c }, // 20
+    // 20
     { "chroma_location", nullptr, nullptr, getCodecParChromaLoc, setCodecParChromaLoc, nullptr,
       (napi_property_attributes) (napi_writable | napi_enumerable), c },
     { "video_delay", nullptr, nullptr, getCodecParVideoDelay, setCodecParVideoDelay, nullptr,
@@ -1798,6 +1800,7 @@ napi_status fromAVCodecParameters(napi_env env, AVCodecParameters* c, bool ownAl
       (napi_property_attributes) (napi_writable | napi_enumerable), c },
     { "seek_preroll", nullptr, nullptr, getCodecParSeekPreroll, setCodecParSeekPreroll, nullptr,
       (napi_property_attributes) (napi_writable | napi_enumerable), c }, // 30
+    // 30
     { "toJSON", nullptr, codecParToJSON, nullptr, nullptr, nullptr, napi_default, c},
     { "_codecPar", nullptr, nullptr, nullptr, nullptr, extCodecPar, napi_default, nullptr }
   };

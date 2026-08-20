@@ -664,7 +664,7 @@ napi_value packetToJSON(napi_env env, napi_callback_info info) {
   status = napi_create_object(env, &result);
   CHECK_STATUS;
 
-  napi_property_descriptor desc[10];
+  napi_property_descriptor desc[9];
   DECLARE_GETTER3("type", true, getPacketTypeName, p);
   DECLARE_GETTER3("pts", p->packet->pts != AV_NOPTS_VALUE, getPacketPts, p);
   DECLARE_GETTER3("dts", p->packet->dts != AV_NOPTS_VALUE, getPacketDts, p);
@@ -712,9 +712,9 @@ napi_status fromAVPacket(napi_env env, packetData* p, napi_value* result) {
       (napi_property_attributes) (napi_writable | napi_enumerable), p },
     { "duration", nullptr, nullptr, getPacketDuration, setPacketDuration, nullptr,
       (napi_property_attributes) (napi_writable | napi_enumerable), p },
-    // 10
     { "pos", nullptr, nullptr, getPacketPos, setPacketPos, nullptr,
       (napi_property_attributes) (napi_writable | napi_enumerable), p },
+    // 10
     { "toJSON", nullptr, packetToJSON, nullptr, nullptr, nullptr, napi_default, p },
     { "_packet", nullptr, nullptr, nullptr, nullptr, extPacket, napi_default, nullptr }
   };

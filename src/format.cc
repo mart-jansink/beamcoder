@@ -517,6 +517,7 @@ napi_status fromAVOutputFormat(napi_env env,
       nullptr, napi_enumerable, (void*) oformat },
     { "codec_tag", nullptr, nullptr, getOFormatCodecTag, nullptr,
       nullptr, napi_enumerable, (void*) oformat }, // 10
+    // 10
     { "priv_class", nullptr, nullptr, getOFormatPrivClass, nullptr,
       nullptr, napi_enumerable, (void*) oformat },
     { "_oformat", nullptr, nullptr, nullptr, nullptr, extOFormat, napi_default, nullptr }
@@ -3354,7 +3355,7 @@ napi_value formatToJSON(napi_env env, napi_callback_info info) {
   status = napi_get_named_property(env, jsObject, "interleaved", &jsInter);
   CHECK_STATUS;
 
-  napi_property_descriptor desc[55];
+  napi_property_descriptor desc[52];
 
   DECLARE_GETTER3("type", true, getFmtCtxTypeName, fmtCtx);
   DECLARE_GETTER3("iformat", fmtCtx->iformat != nullptr, getFmtCtxIFormatName, fmtCtx);
@@ -3365,8 +3366,8 @@ napi_value formatToJSON(napi_env env, napi_callback_info info) {
   DECLARE_GETTER3("url", (fmtCtx->url != nullptr) && (strlen(fmtCtx->url) > 0), getFmtCtxURL, fmtCtx);
   DECLARE_GETTER3("start_time", fmtCtx->start_time > 0, getFmtCtxStartTime, fmtCtx);
   DECLARE_GETTER3("duration", fmtCtx->duration > 0, getFmtCtxDuration, fmtCtx);
-    // 10
   DECLARE_GETTER3("bit_rate", fmtCtx->bit_rate > 0, getFmtCtxBitRate, fmtCtx);
+  // 10
   DECLARE_GETTER3("packet_size", fmtCtx->packet_size > 0, getFmtCtxPacketSize, fmtCtx);
   DECLARE_GETTER3("max_delay", fmtCtx->max_delay >= 0, getFmtCtxMaxDelay, fmtCtx);
   DECLARE_GETTER3("flags", fmtCtx->flags != AVFMT_FLAG_AUTO_BSF, getFmtCtxFlags, fmtCtx);
@@ -3376,8 +3377,8 @@ napi_value formatToJSON(napi_env env, napi_callback_info info) {
   DECLARE_GETTER3("programs", fmtCtx->nb_programs > 0, getFmtCtxPrograms, fmtCtx);
   DECLARE_GETTER3("max_index_size", fmtCtx->max_index_size != 1<<20, getFmtCtxMaxIndexSize, fmtCtx);
   DECLARE_GETTER3("max_picture_buffer", fmtCtx->max_picture_buffer != 3041280, getFmtCtxMaxPictBuf, fmtCtx);
-    // 20
   DECLARE_GETTER3("metadata", fmtCtx->metadata != nullptr, getFmtCtxMetadata, fmtCtx);
+  // 20
   DECLARE_GETTER3("start_time_realtime", fmtCtx->start_time_realtime != AV_NOPTS_VALUE, getFmtCtxStartTRealT, fmtCtx);
   DECLARE_GETTER3("fps_probe_size", fmtCtx->fps_probe_size >= 0, getFmtCtxFpsProbeSize, fmtCtx);
   DECLARE_GETTER3("error_recognition", fmtCtx->error_recognition != 1, getFmtCtxErrRecog, fmtCtx);
@@ -3387,8 +3388,8 @@ napi_value formatToJSON(napi_env env, napi_callback_info info) {
   DECLARE_GETTER3("event_flags", fmtCtx->event_flags > 0, getFmtCtxEventFlags, fmtCtx);
   DECLARE_GETTER3("max_ts_probe", fmtCtx->max_ts_probe != 50, getFmtCtxMaxTsProbe, fmtCtx);
   DECLARE_GETTER3("avoid_negative_ts", fmtCtx->avoid_negative_ts != AVFMT_AVOID_NEG_TS_AUTO, getFmtCtxAvoidNegTs, fmtCtx);
-    // 30
   DECLARE_GETTER3("audio_preload", fmtCtx->audio_preload > 0, getFmtCtxAudioPreload, fmtCtx);
+  // 30
   DECLARE_GETTER3("max_chunk_duration", fmtCtx->max_chunk_duration > 0, getFmtCtxMaxChunkDur, fmtCtx);
   DECLARE_GETTER3("max_chunk_size", fmtCtx->max_chunk_size > 0, getFmtCtxMaxChunkSize, fmtCtx);
   DECLARE_GETTER3("use_wallclock_as_timestamps", fmtCtx->use_wallclock_as_timestamps != 0, getFmtCtxUseWallclock, fmtCtx);
@@ -3398,8 +3399,8 @@ napi_value formatToJSON(napi_env env, napi_callback_info info) {
   DECLARE_GETTER3("correct_ts_overflow", fmtCtx->correct_ts_overflow != 1, getFmtCtxCorrectTsOf, fmtCtx);
   DECLARE_GETTER3("seek2any", fmtCtx->seek2any != 0, getFmtCtxSeek2Any, fmtCtx);
   DECLARE_GETTER3("flush_packets", fmtCtx->flush_packets != -1, getFmtCtxFlushPackets, fmtCtx);
-    // 40
   DECLARE_GETTER3("probe_score", fmtCtx->probe_score != 0, getFmtCtxProbeScore, fmtCtx);
+  // 40
   DECLARE_GETTER3("format_probesize", fmtCtx->format_probesize != 1<<20, getFmtCtxFmtProbesize, fmtCtx);
   DECLARE_GETTER3("codec_whitelist", fmtCtx->codec_whitelist != nullptr, getFmtCtxCodecWhitelist, fmtCtx);
   DECLARE_GETTER3("format_whitelist", fmtCtx->codec_whitelist != nullptr, getFmtCtxFmtWhitelist, fmtCtx);
@@ -3409,8 +3410,8 @@ napi_value formatToJSON(napi_env env, napi_callback_info info) {
   DECLARE_GETTER3("dump_separator", strcmp(const_cast<char*>((char*) fmtCtx->dump_separator), ", ") != 0, getFmtCtxDumpSep, fmtCtx);
   DECLARE_GETTER3("protocol_whitelist", fmtCtx->protocol_whitelist != nullptr, getFmtCtxProtWhitelist, fmtCtx);
   DECLARE_GETTER3("protocol_blacklist", fmtCtx->protocol_blacklist != nullptr, getFmtCtxProtBlacklist, fmtCtx);
-    // 50
   DECLARE_GETTER3("max_streams", fmtCtx->max_streams != 1000, getFmtCtxMaxStreams, fmtCtx);
+  // 50
   DECLARE_GETTER3("skip_estimate_duration_from_pts", fmtCtx->skip_estimate_duration_from_pts != 0, getFmtCtxSkipEstDurFromPTS, fmtCtx);
   desc[count++] = { "interleaved", nullptr, nullptr, nullptr, nullptr, jsInter, napi_enumerable, nullptr };
 
@@ -3468,9 +3469,9 @@ napi_status fromAVFormatContext(napi_env env, AVFormatContext* fmtCtx,
         (napi_property_attributes) (napi_writable | napi_enumerable), fmtCtx },
       { "bit_rate", nullptr, nullptr, getFmtCtxBitRate, setFmtCtxBitRate, nullptr,
         (napi_property_attributes) (napi_writable | napi_enumerable), fmtCtx },
-      // 10
       { "packet_size", nullptr, nullptr, getFmtCtxPacketSize, setFmtCtxPacketSize, nullptr,
         (napi_property_attributes) (napi_writable | napi_enumerable), fmtCtx },
+      // 10
       { "max_delay", nullptr, nullptr, getFmtCtxMaxDelay, setFmtCtxMaxDelay, nullptr,
         (napi_property_attributes) (napi_writable | napi_enumerable), fmtCtx },
       { "flags", nullptr, nullptr, getFmtCtxFlags, setFmtCtxFlags, nullptr,
@@ -3497,9 +3498,9 @@ napi_status fromAVFormatContext(napi_env env, AVFormatContext* fmtCtx,
         // chapters?
       { "metadata", nullptr, nullptr, getFmtCtxMetadata, setFmtCtxMetadata, nullptr,
         (napi_property_attributes) (napi_writable | napi_enumerable), fmtCtx },
-      // 20
       { "start_time_realtime", nullptr, nullptr, getFmtCtxStartTRealT, setFmtCtxStartTRealT, nullptr,
         (napi_property_attributes) (napi_writable | napi_enumerable), fmtCtx },
+      // 20
       { "fps_probe_size", nullptr, nullptr,
         isMuxer ? nullptr : getFmtCtxFpsProbeSize,
         isMuxer ? failSetter : setFmtCtxFpsProbeSize, nullptr,
@@ -3531,11 +3532,11 @@ napi_status fromAVFormatContext(napi_env env, AVFormatContext* fmtCtx,
         isMuxer ? getFmtCtxAudioPreload : nullptr,
         isMuxer ? setFmtCtxAudioPreload : failSetter, nullptr,
         isMuxer ? (napi_property_attributes) (napi_writable | napi_enumerable) : napi_default, fmtCtx },
-      // 30
       { "max_chunk_duration", nullptr, nullptr,
         isMuxer ? getFmtCtxMaxChunkDur : nullptr,
         isMuxer ? setFmtCtxMaxChunkDur : failSetter, nullptr,
         isMuxer ? (napi_property_attributes) (napi_writable | napi_enumerable) : napi_default, fmtCtx },
+      // 30
       { "max_chunk_size", nullptr, nullptr,
         isMuxer ? getFmtCtxMaxChunkSize : nullptr,
         isMuxer ? setFmtCtxMaxChunkSize : failSetter, nullptr,
@@ -3570,11 +3571,11 @@ napi_status fromAVFormatContext(napi_env env, AVFormatContext* fmtCtx,
       { "probe_score", nullptr, nullptr,
         isMuxer ? nullptr : getFmtCtxProbeScore, failSetter, nullptr,
         isMuxer ? napi_default : napi_enumerable, fmtCtx },
-      // 40
       { "format_probesize", nullptr, nullptr,
         isMuxer ? nullptr : getFmtCtxFmtProbesize,
         isMuxer ? failSetter : setFmtCtxFmtProbesize, nullptr,
         isMuxer ? napi_default : (napi_property_attributes) (napi_writable | napi_enumerable), fmtCtx },
+      // 40
       { "codec_whitelist", nullptr, nullptr,
         isMuxer ? nullptr : getFmtCtxCodecWhitelist,
         isMuxer ? failSetter : setFmtCtxCodecWhitelist, nullptr,
@@ -3609,11 +3610,11 @@ napi_status fromAVFormatContext(napi_env env, AVFormatContext* fmtCtx,
         isMuxer ? nullptr : getFmtCtxMaxStreams,
         isMuxer ? failSetter : setFmtCtxMaxStreams, nullptr,
         isMuxer ? napi_default : (napi_property_attributes) (napi_writable | napi_enumerable), fmtCtx },
-      // 50
       { "skip_estimate_duration_from_pts", nullptr, nullptr,
         isMuxer ? nullptr : getFmtCtxSkipEstDurFromPTS,
         isMuxer ? failSetter : setFmtCtxSkipEstDurFromPTS, nullptr,
         isMuxer ? napi_default : (napi_property_attributes) (napi_writable | napi_enumerable), fmtCtx },
+      // 50
       { "interleaved", nullptr, nullptr, nullptr, nullptr, truth,
         (napi_property_attributes) (napi_writable | napi_enumerable), nullptr }, // format is interleaved?
       { "newStream", nullptr, newStream, nullptr, nullptr, nullptr,
@@ -3646,9 +3647,9 @@ napi_status fromAVFormatContext(napi_env env, AVFormatContext* fmtCtx,
         (napi_property_attributes) (napi_writable | napi_enumerable), fmtCtx },
       { "duration", nullptr, nullptr, getFmtCtxDuration, setFmtCtxDuration, nullptr,
         (napi_property_attributes) (napi_writable | napi_enumerable), fmtCtx },
-      // 10
       { "bit_rate", nullptr, nullptr, getFmtCtxBitRate, setFmtCtxBitRate, nullptr,
         (napi_property_attributes) (napi_writable | napi_enumerable), fmtCtx },
+      // 10
       { "packet_size", nullptr, nullptr, getFmtCtxPacketSize, setFmtCtxPacketSize, nullptr,
         (napi_property_attributes) (napi_writable | napi_enumerable), fmtCtx },
       { "max_delay", nullptr, nullptr, getFmtCtxMaxDelay, setFmtCtxMaxDelay, nullptr,
@@ -3669,9 +3670,9 @@ napi_status fromAVFormatContext(napi_env env, AVFormatContext* fmtCtx,
       { "max_picture_buffer", nullptr, nullptr, getFmtCtxMaxPictBuf, setFmtCtxMaxPictBuf, nullptr,
         (napi_property_attributes) (napi_writable | napi_enumerable), fmtCtx },
         // chapters?
-      // 20
       { "metadata", nullptr, nullptr, getFmtCtxMetadata, setFmtCtxMetadata, nullptr,
         (napi_property_attributes) (napi_writable | napi_enumerable), fmtCtx },
+      // 20
       { "start_time_realtime", nullptr, nullptr, getFmtCtxStartTRealT, setFmtCtxStartTRealT, nullptr,
         (napi_property_attributes) (napi_writable | napi_enumerable), fmtCtx },
       { "fps_probe_size", nullptr, nullptr, getFmtCtxFpsProbeSize, setFmtCtxFpsProbeSize, nullptr,
@@ -3691,9 +3692,9 @@ napi_status fromAVFormatContext(napi_env env, AVFormatContext* fmtCtx,
       // ts_id - says it's going private
       { "avoid_negative_ts", nullptr, nullptr, getFmtCtxAvoidNegTs, setFmtCtxAvoidNegTs, nullptr,
         (napi_property_attributes) (napi_writable | napi_enumerable), fmtCtx },
-      // 30
       { "audio_preload", nullptr, nullptr, getFmtCtxAudioPreload, setFmtCtxAudioPreload, nullptr,
         (napi_property_attributes) (napi_writable | napi_enumerable), fmtCtx },
+      // 30
       { "max_chunk_duration", nullptr, nullptr, getFmtCtxMaxChunkDur, setFmtCtxMaxChunkDur, nullptr,
         (napi_property_attributes) (napi_writable | napi_enumerable), fmtCtx },
       { "max_chunk_size", nullptr, nullptr, getFmtCtxMaxChunkSize, setFmtCtxMaxChunkSize, nullptr,
@@ -3712,9 +3713,9 @@ napi_status fromAVFormatContext(napi_env env, AVFormatContext* fmtCtx,
         (napi_property_attributes) (napi_writable | napi_enumerable), fmtCtx },
       { "flush_packets", nullptr, nullptr, getFmtCtxFlushPackets, setFmtCtxFlushPackets, nullptr,
         (napi_property_attributes) (napi_writable | napi_enumerable), fmtCtx },
-      // 40
       { "probe_score", nullptr, nullptr, getFmtCtxProbeScore, nop, nullptr,
         (napi_property_attributes) (napi_writable | napi_enumerable), fmtCtx },
+      // 40
       { "format_probesize", nullptr, nullptr, getFmtCtxFmtProbesize, setFmtCtxFmtProbesize, nullptr,
         (napi_property_attributes) (napi_writable | napi_enumerable), fmtCtx },
       { "codec_whitelist", nullptr, nullptr, getFmtCtxCodecWhitelist, setFmtCtxCodecWhitelist, nullptr,
@@ -3734,9 +3735,9 @@ napi_status fromAVFormatContext(napi_env env, AVFormatContext* fmtCtx,
         (napi_property_attributes) (napi_writable | napi_enumerable), fmtCtx },
       { "protocol_blacklist", nullptr, nullptr, getFmtCtxProtBlacklist, setFmtCtxProtBlacklist, nullptr,
         (napi_property_attributes) (napi_writable | napi_enumerable), fmtCtx },
-      // 50
       { "max_streams", nullptr, nullptr, getFmtCtxMaxStreams, setFmtCtxMaxStreams, nullptr,
         (napi_property_attributes) (napi_writable | napi_enumerable), fmtCtx },
+      // 50
       { "skip_estimate_duration_from_pts", nullptr, nullptr, getFmtCtxSkipEstDurFromPTS, setFmtCtxSkipEstDurFromPTS, nullptr,
         (napi_property_attributes) (napi_writable | napi_enumerable), fmtCtx },
       { "interleaved", nullptr, nullptr, nullptr, nullptr, truth,

@@ -603,6 +603,7 @@ napi_status fromAVFilterLink(napi_env env, const AVFilterLink* link, napi_value*
       (AVMEDIA_TYPE_AUDIO == link->type) ? napi_enumerable : napi_default, (void*)link },
     { "channel_layout", nullptr, nullptr, getLinkChannelLayout, nullptr, nullptr,
       (AVMEDIA_TYPE_AUDIO == link->type) ? napi_enumerable : napi_default, (void*)link },
+    // 10
     { "sample_rate", nullptr, nullptr, getLinkSampleRate, nullptr, nullptr,
       (AVMEDIA_TYPE_AUDIO == link->type) ? napi_enumerable : napi_default, (void*)link },
     { "format", nullptr, nullptr, getLinkFormat, nullptr, nullptr, napi_enumerable, (void*)link },
