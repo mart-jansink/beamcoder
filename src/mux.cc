@@ -21,7 +21,7 @@
 
 #include "mux.h"
 
-int write_packet(void *opaque, uint8_t *buf, int buf_size)
+int write_packet(void *opaque, const uint8_t *buf, int buf_size)
 {
   Adaptor *adaptor = (Adaptor *)opaque;
   return adaptor->write(buf, buf_size);

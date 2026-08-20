@@ -268,10 +268,6 @@ napi_status getIOFormatFlags(napi_env env, int flags, napi_value* result, bool i
     PASS_STATUS;
   }
   if (!isInput) {
-    status = beam_set_bool(env, value, "ALLOW_FLUSH", flags & AVFMT_ALLOW_FLUSH); // O
-    PASS_STATUS;
-  }
-  if (!isInput) {
     status = beam_set_bool(env, value, "TS_NONSTRICT", flags & AVFMT_TS_NONSTRICT); // O
     PASS_STATUS;
   }
@@ -311,34 +307,6 @@ napi_value getIFormatFlags(napi_env env, napi_callback_info info) {
   CHECK_STATUS;
 
   status = getIOFormatFlags(env, iformat->flags, &result, true);
-  CHECK_STATUS;
-
-  return result;
-}
-
-napi_value getIFormatRawCodecID(napi_env env, napi_callback_info info) {
-  napi_status status;
-  napi_value result;
-  AVInputFormat* iformat;
-
-  status = napi_get_cb_info(env, info, nullptr, nullptr, nullptr, (void**) &iformat);
-  CHECK_STATUS;
-
-  status = napi_create_int32(env, iformat->raw_codec_id, &result);
-  CHECK_STATUS;
-
-  return result;
-}
-
-napi_value getIFormatPrivDataSize(napi_env env, napi_callback_info info) {
-  napi_status status;
-  napi_value result;
-  AVInputFormat* iformat;
-
-  status = napi_get_cb_info(env, info, nullptr, nullptr, nullptr, (void**) &iformat);
-  CHECK_STATUS;
-
-  status = napi_create_int32(env, iformat->priv_data_size, &result);
   CHECK_STATUS;
 
   return result;
@@ -588,13 +556,9 @@ napi_status fromAVInputFormat(napi_env env,
       nullptr, napi_enumerable, (void*) iformat },
     { "mime_type", nullptr, nullptr, getIFormatMimeType, nullptr,
       nullptr, napi_enumerable, (void*) iformat },
-    { "raw_codec_id", nullptr, nullptr, getIFormatRawCodecID, nullptr,
-      nullptr, napi_enumerable, (void*) iformat },
-    { "priv_data_size", nullptr, nullptr, getIFormatPrivDataSize, nullptr,
-      nullptr, napi_enumerable, (void*) iformat }, // 10
     { "_iformat", nullptr, nullptr, nullptr, nullptr, extIFormat, napi_default, nullptr }
   };
-  status = napi_define_properties(env, jsIFormat, 11, desc);
+  status = napi_define_properties(env, jsIFormat, 9, desc);
   PASS_STATUS;
 
   *result = jsIFormat;
@@ -791,16 +755,10 @@ done:
   if ((fmtCtx->iformat == nullptr) || (found == false)) {
     NAPI_THROW_ERROR("Unable to find and/or set input format.");
   }
-  if (fmtCtx->iformat->priv_data_size > 0) {
-    av_freep(&fmtCtx->priv_data);
-    if (!(fmtCtx->priv_data = av_mallocz(fmtCtx->iformat->priv_data_size))) {
-      NAPI_THROW_ERROR("Failed to allocate memory for private data.");
-    }
-    if (fmtCtx->iformat->priv_class) {
-      *(const AVClass **) fmtCtx->priv_data = fmtCtx->iformat->priv_class;
-      av_opt_set_defaults(fmtCtx->priv_data);
-    }
-  }
+  // priv_data_size is no longer part of the public AVInputFormat API (FFmpeg
+  // moved it into the internal FFInputFormat struct), so it can no longer be
+  // pre-allocated here. avformat_open_input() allocates it internally when
+  // the format is actually opened.
 
 over:
   status = napi_get_undefined(env, &result);
@@ -1219,9 +1177,6 @@ napi_value getFmtCtxFlags(napi_env env, napi_callback_info info) {
   // Enable fast, but inaccurate seeks for some formats
   status = beam_set_bool(env, result, "FAST_SEEK", fmtCtx->flags & AVFMT_FLAG_FAST_SEEK);
   CHECK_STATUS;
-  // Stop muxing when the shortest stream stops.
-  status = beam_set_bool(env, result, "SHORTEST", fmtCtx->flags & AVFMT_FLAG_SHORTEST);
-  CHECK_STATUS;
   // Add bitstream filters as requested by the muxer
   status = beam_set_bool(env, result, "AUTO_BSF", fmtCtx->flags & AVFMT_FLAG_AUTO_BSF);
   CHECK_STATUS;
@@ -1327,12 +1282,6 @@ napi_value setFmtCtxFlags(napi_env env, napi_callback_info info) {
   if (present) { fmtCtx->flags = (flag) ?
     fmtCtx->flags | AVFMT_FLAG_FAST_SEEK :
     fmtCtx->flags & ~AVFMT_FLAG_FAST_SEEK; }
-  // Stop muxing when the shortest stream stops.
-  status = beam_get_bool(env, args[0], "SHORTEST", &present, &flag);
-  CHECK_STATUS;
-  if (present) { fmtCtx->flags = (flag) ?
-    fmtCtx->flags | AVFMT_FLAG_SHORTEST :
-    fmtCtx->flags & ~AVFMT_FLAG_SHORTEST; }
   // Add bitstream filters as requested by the muxer
   status = beam_get_bool(env, args[0], "AUTO_BSF", &present, &flag);
   CHECK_STATUS;
@@ -4991,20 +4940,20 @@ napi_value getStreamSideData(napi_env env, napi_callback_info info) {
   status = napi_get_null(env, &result);
   CHECK_STATUS;
 
-  if (stream->nb_side_data <= 0) {
+  if (stream->codecpar->nb_coded_side_data <= 0) {
     status = napi_get_null(env, &result);
     CHECK_STATUS;
   } else {
     status = napi_create_object(env, &result);
     CHECK_STATUS;
     status = beam_set_string_utf8(env, result, "type", "PacketSideData");
-    for ( int x = 0 ; x < stream->nb_side_data ; x++ ) {
-      status = napi_create_buffer_copy(env, stream->side_data[x].size,
-        stream->side_data[x].data, &resultData, &element);
+    for ( int x = 0 ; x < stream->codecpar->nb_coded_side_data ; x++ ) {
+      status = napi_create_buffer_copy(env, stream->codecpar->coded_side_data[x].size,
+        stream->codecpar->coded_side_data[x].data, &resultData, &element);
       CHECK_STATUS;
       status = napi_set_named_property(env, result,
         beam_lookup_name(beam_packet_side_data_type->forward,
-          stream->side_data[x].type), element);
+          stream->codecpar->coded_side_data[x].type), element);
       CHECK_STATUS;
     }
   }
@@ -5020,7 +4969,6 @@ napi_value setStreamSideData(napi_env env, napi_callback_info info) {
   bool isArray, isBuffer;
   uint32_t sdCount;
   AVStream* stream;
-  AVPacketSideData* sd;
   char* typeName;
   size_t strLen;
   int psdt;
@@ -5051,12 +4999,7 @@ napi_value setStreamSideData(napi_env env, napi_callback_info info) {
     case napi_object:
     case napi_null:
     case napi_undefined:
-      for ( int x = 0 ; x < stream->nb_side_data ; x++ ) {
-        sd = &stream->side_data[x];
-        av_freep(&sd->data);
-      }
-      av_freep(&stream->side_data);
-      stream->nb_side_data = 0;
+      av_packet_side_data_free(&stream->codecpar->coded_side_data, &stream->codecpar->nb_coded_side_data);
       if (type != napi_object) { goto done; };
       break;
     default:
@@ -5102,10 +5045,10 @@ napi_value setStreamSideData(napi_env env, napi_callback_info info) {
     } else {
       status = napi_get_buffer_info(env, element, &rawdata, &rawdataSize);
       CHECK_STATUS;
-      uint8_t* pktdata = av_stream_new_side_data(stream,
-        (AVPacketSideDataType) psdt, rawdataSize);
-      if (pktdata != nullptr) {
-        memcpy(pktdata, rawdata, rawdataSize);
+      AVPacketSideData* newSd = av_packet_side_data_new(&stream->codecpar->coded_side_data,
+        &stream->codecpar->nb_coded_side_data, (AVPacketSideDataType) psdt, rawdataSize, 0);
+      if (newSd != nullptr) {
+        memcpy(newSd->data, rawdata, rawdataSize);
       }
     }
   }
@@ -5192,7 +5135,7 @@ napi_value streamToJSON(napi_env env, napi_callback_info info) {
   DECLARE_GETTER3("metadata", s->metadata != nullptr, getStreamMetadata, s);
   DECLARE_GETTER3("avg_frame_rate", s->avg_frame_rate.num != 0, getStreamAvgFrameRate, s);
   // TODO attached_pic
-  DECLARE_GETTER3("side_data", s->nb_side_data > 0, getStreamSideData, s);
+  DECLARE_GETTER3("side_data", s->codecpar->nb_coded_side_data > 0, getStreamSideData, s);
   DECLARE_GETTER3("event_flags", s->event_flags > 0, getStreamEventFlags, s);
   DECLARE_GETTER3("r_frame_rate", s->r_frame_rate.num != 0, getStreamRFrameRate, s);
   DECLARE_GETTER3("codecpar", true, codecParToJSON, s->codecpar);

@@ -134,8 +134,8 @@ create:
   status = napi_call_function(env, result, assign, 2, fargs, &result);
   CHECK_BAIL;
 
-  if ((encoder->sample_fmt != AV_SAMPLE_FMT_NONE) && 
-      (encoder->sample_rate > 0) && (encoder->channel_layout != 0)) {
+  if ((encoder->sample_fmt != AV_SAMPLE_FMT_NONE) &&
+      (encoder->sample_rate > 0) && (encoder->ch_layout.nb_channels != 0)) {
     // For audio encodes open the encoder if sufficient parameters have been provided
     // Encoder specific parameters will then be set up and available before the first encode
     ret = avcodec_open2(encoder, encoder->codec, nullptr);
@@ -155,7 +155,6 @@ create:
 
 bail:
   if (encoder != nullptr) {
-    avcodec_close(encoder);
     avcodec_free_context(&encoder);
   }
   return nullptr;
@@ -163,7 +162,6 @@ bail:
 
 void encoderFinalizer(napi_env env, void* data, void* hint) {
   AVCodecContext* encoder = (AVCodecContext*) data;
-  avcodec_close(encoder);
   avcodec_free_context(&encoder);
 };
 

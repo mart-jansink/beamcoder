@@ -224,7 +224,7 @@ napi_value getFrameFormat(napi_env env, napi_callback_info info) {
   CHECK_STATUS;
 
   // Assume audio data using FFmpeg's own technique
-  if (f->frame->nb_samples > 0 && (f->frame->channel_layout || f->frame->channels > 0)) {
+  if (f->frame->nb_samples > 0 && (f->frame->ch_layout.nb_channels > 0)) {
     name = av_get_sample_fmt_name((AVSampleFormat) f->frame->format);
   }
   if (name == nullptr) { // Assume that it is video data
@@ -278,7 +278,7 @@ napi_value setFrameFormat(napi_env env, napi_callback_info info) {
     format = (int) av_get_sample_fmt((const char*) name);
     if ((format != AV_SAMPLE_FMT_NONE) && (f->frame->nb_samples == 0)) {
       f->frame->nb_samples = 1; // Cludge ... found a sample format ... force audio mode
-      f->frame->channels = 1;
+      av_channel_layout_default(&f->frame->ch_layout, 1);
     }
   }
 
@@ -298,7 +298,7 @@ napi_value getFrameKeyFrame(napi_env env, napi_callback_info info) {
   status = napi_get_cb_info(env, info, 0, nullptr, nullptr, (void**) &f);
   CHECK_STATUS;
 
-  status = napi_get_boolean(env, (f->frame->key_frame == 1), &result);
+  status = napi_get_boolean(env, (f->frame->flags & AV_FRAME_FLAG_KEY) != 0, &result);
   CHECK_STATUS;
   return result;
 }
@@ -325,7 +325,8 @@ napi_value setFrameKeyFrame(napi_env env, napi_callback_info info) {
   }
   status = napi_get_value_bool(env, args[0], &keyFrame);
   CHECK_STATUS;
-  f->frame->key_frame = (keyFrame) ? 1 : 0;
+  if (keyFrame) { f->frame->flags |= AV_FRAME_FLAG_KEY; }
+  else { f->frame->flags &= ~AV_FRAME_FLAG_KEY; }
 
   status = napi_get_undefined(env, &result);
   CHECK_STATUS;
@@ -613,86 +614,6 @@ done:
   return result;
 }
 
-napi_value getFrameCodedPicNum(napi_env env, napi_callback_info info) {
-  napi_status status;
-  napi_value result;
-  frameData* f;
-
-  status = napi_get_cb_info(env, info, 0, nullptr, nullptr, (void**) &f);
-  CHECK_STATUS;
-
-  status = napi_create_int32(env, f->frame->coded_picture_number, &result);
-  CHECK_STATUS;
-  return result;
-}
-
-napi_value setFrameCodedPicNum(napi_env env, napi_callback_info info) {
-  napi_status status;
-  napi_value result;
-  napi_valuetype type;
-  frameData* f;
-
-  size_t argc = 1;
-  napi_value args[1];
-
-  status = napi_get_cb_info(env, info, &argc, args, nullptr, (void**) &f);
-  CHECK_STATUS;
-  if (argc < 1) {
-    NAPI_THROW_ERROR("Set frame coded_picture_number must be provided with a value.");
-  }
-  status = napi_typeof(env, args[0], &type);
-  CHECK_STATUS;
-  if (type != napi_number) {
-    NAPI_THROW_ERROR("Frame coded_picture_number property must be set with a number.");
-  }
-  status = napi_get_value_int32(env, args[0], &f->frame->coded_picture_number);
-  CHECK_STATUS;
-
-  status = napi_get_undefined(env, &result);
-  CHECK_STATUS;
-  return result;
-}
-
-napi_value getFrameDispPicNum(napi_env env, napi_callback_info info) {
-  napi_status status;
-  napi_value result;
-  frameData* f;
-
-  status = napi_get_cb_info(env, info, 0, nullptr, nullptr, (void**) &f);
-  CHECK_STATUS;
-
-  status = napi_create_int32(env, f->frame->display_picture_number, &result);
-  CHECK_STATUS;
-  return result;
-}
-
-napi_value setFrameDispPicNum(napi_env env, napi_callback_info info) {
-  napi_status status;
-  napi_value result;
-  napi_valuetype type;
-  frameData* f;
-
-  size_t argc = 1;
-  napi_value args[1];
-
-  status = napi_get_cb_info(env, info, &argc, args, nullptr, (void**) &f);
-  CHECK_STATUS;
-  if (argc < 1) {
-    NAPI_THROW_ERROR("Set frame display_picture_number must be provided with a value.");
-  }
-  status = napi_typeof(env, args[0], &type);
-  CHECK_STATUS;
-  if (type != napi_number) {
-    NAPI_THROW_ERROR("Frame display_picture_number property must be set with a number.");
-  }
-  status = napi_get_value_int32(env, args[0], &f->frame->display_picture_number);
-  CHECK_STATUS;
-
-  status = napi_get_undefined(env, &result);
-  CHECK_STATUS;
-  return result;
-}
-
 napi_value getFrameQuality(napi_env env, napi_callback_info info) {
   napi_status status;
   napi_value result;
@@ -781,7 +702,7 @@ napi_value getFrameInterlaced(napi_env env, napi_callback_info info) {
   status = napi_get_cb_info(env, info, 0, nullptr, nullptr, (void**) &f);
   CHECK_STATUS;
 
-  status = napi_get_boolean(env, f->frame->interlaced_frame == 1, &result);
+  status = napi_get_boolean(env, (f->frame->flags & AV_FRAME_FLAG_INTERLACED) != 0, &result);
   CHECK_STATUS;
   return result;
 }
@@ -808,7 +729,8 @@ napi_value setFrameInterlaced(napi_env env, napi_callback_info info) {
   }
   status = napi_get_value_bool(env, args[0], &interlaced);
   CHECK_STATUS;
-  f->frame->interlaced_frame = (interlaced) ? 1 : 0;
+  if (interlaced) { f->frame->flags |= AV_FRAME_FLAG_INTERLACED; }
+  else { f->frame->flags &= ~AV_FRAME_FLAG_INTERLACED; }
 
   status = napi_get_undefined(env, &result);
   CHECK_STATUS;
@@ -823,7 +745,7 @@ napi_value getFrameTopFieldFirst(napi_env env, napi_callback_info info) {
   status = napi_get_cb_info(env, info, 0, nullptr, nullptr, (void**) &f);
   CHECK_STATUS;
 
-  status = napi_get_boolean(env, f->frame->top_field_first == 1, &result);
+  status = napi_get_boolean(env, (f->frame->flags & AV_FRAME_FLAG_TOP_FIELD_FIRST) != 0, &result);
   CHECK_STATUS;
   return result;
 }
@@ -850,101 +772,9 @@ napi_value setFrameTopFieldFirst(napi_env env, napi_callback_info info) {
   }
   status = napi_get_value_bool(env, args[0], &topFieldFirst);
   CHECK_STATUS;
-  f->frame->top_field_first = (topFieldFirst) ? 1 : 0;
+  if (topFieldFirst) { f->frame->flags |= AV_FRAME_FLAG_TOP_FIELD_FIRST; }
+  else { f->frame->flags &= ~AV_FRAME_FLAG_TOP_FIELD_FIRST; }
 
-  status = napi_get_undefined(env, &result);
-  CHECK_STATUS;
-  return result;
-}
-
-napi_value getFramePalHasChanged(napi_env env, napi_callback_info info) {
-  napi_status status;
-  napi_value result;
-  frameData* f;
-
-  status = napi_get_cb_info(env, info, 0, nullptr, nullptr, (void**) &f);
-  CHECK_STATUS;
-
-  status = napi_get_boolean(env, f->frame->palette_has_changed == 1, &result);
-  CHECK_STATUS;
-  return result;
-}
-
-napi_value setFramePalHasChanged(napi_env env, napi_callback_info info) {
-  napi_status status;
-  napi_value result;
-  napi_valuetype type;
-  frameData* f;
-  bool palHasChanged;
-
-  size_t argc = 1;
-  napi_value args[1];
-
-  status = napi_get_cb_info(env, info, &argc, args, nullptr, (void**) &f);
-  CHECK_STATUS;
-  if (argc < 1) {
-    NAPI_THROW_ERROR("Set frame palette_has_changed must be provided with a value.");
-  }
-  status = napi_typeof(env, args[0], &type);
-  CHECK_STATUS;
-  if (type != napi_boolean) {
-    NAPI_THROW_ERROR("Frame palette_has_changed property must be set with a Boolean.");
-  }
-  status = napi_get_value_bool(env, args[0], &palHasChanged);
-  CHECK_STATUS;
-  f->frame->palette_has_changed = (palHasChanged) ? 1 : 0;
-
-  status = napi_get_undefined(env, &result);
-  CHECK_STATUS;
-  return result;
-}
-
-napi_value getFrameReorderOpq(napi_env env, napi_callback_info info) {
-  napi_status status;
-  napi_value result;
-  frameData* f;
-
-  status = napi_get_cb_info(env, info, 0, nullptr, nullptr, (void**) &f);
-  CHECK_STATUS;
-
-  if (f->frame->reordered_opaque == AV_NOPTS_VALUE) {
-    status = napi_get_null(env, &result);
-    CHECK_STATUS;
-  } else {
-    status = napi_create_int64(env, f->frame->reordered_opaque, &result);
-    CHECK_STATUS;
-  }
-  return result;
-}
-
-napi_value setFrameReorderOpq(napi_env env, napi_callback_info info) {
-  napi_status status;
-  napi_value result;
-  napi_valuetype type;
-  frameData* f;
-
-  size_t argc = 1;
-  napi_value args[1];
-
-  status = napi_get_cb_info(env, info, &argc, args, nullptr, (void**) &f);
-  CHECK_STATUS;
-  if (argc < 1) {
-    NAPI_THROW_ERROR("Set frame reordered_opaque must be provided with a value.");
-  }
-  status = napi_typeof(env, args[0], &type);
-  CHECK_STATUS;
-  if ((type == napi_null) || (type == napi_undefined)) {
-    f->frame->reordered_opaque = AV_NOPTS_VALUE;
-    goto done;
-  }
-
-  if (type != napi_number) {
-    NAPI_THROW_ERROR("Frame reordered_opaque property must be set with a number.");
-  }
-  status = napi_get_value_int64(env, args[0], &f->frame->reordered_opaque);
-  CHECK_STATUS;
-
-done:
   status = napi_get_undefined(env, &result);
   CHECK_STATUS;
   return result;
@@ -999,8 +829,7 @@ napi_value getFrameChanLayout(napi_env env, napi_callback_info info) {
   CHECK_STATUS;
 
   char channelLayoutName[64];
-  av_get_channel_layout_string(channelLayoutName, 64, 0, 
-    f->frame->channel_layout ? f->frame->channel_layout : av_get_default_channel_layout(f->frame->channels));
+  av_channel_layout_describe(&f->frame->ch_layout, channelLayoutName, 64);
 
   status = napi_create_string_utf8(env, channelLayoutName, NAPI_AUTO_LENGTH, &result);
   CHECK_STATUS;
@@ -1026,7 +855,7 @@ napi_value setFrameChanLayout(napi_env env, napi_callback_info info) {
   status = napi_typeof(env, args[0], &type);
   CHECK_STATUS;
   if ((type == napi_null) || (type == napi_undefined)) {
-    f->frame->channel_layout = 0;
+    av_channel_layout_uninit(&f->frame->ch_layout);
     goto done;
   }
   if (type != napi_string) {
@@ -1038,7 +867,8 @@ napi_value setFrameChanLayout(napi_env env, napi_callback_info info) {
   status = napi_get_value_string_utf8(env, args[0], name, len + 1, &len);
   CHECK_STATUS;
 
-  f->frame->channel_layout = av_get_channel_layout(name);
+  av_channel_layout_uninit(&f->frame->ch_layout);
+  av_channel_layout_from_string(&f->frame->ch_layout, name);
   free(name);
 
 done:
@@ -1744,46 +1574,6 @@ done:
   return result;
 }
 
-napi_value getFramePktPos(napi_env env, napi_callback_info info) {
-  napi_status status;
-  napi_value result;
-  frameData* f;
-
-  status = napi_get_cb_info(env, info, 0, nullptr, nullptr, (void**) &f);
-  CHECK_STATUS;
-
-  status = napi_create_int64(env, f->frame->pkt_pos, &result);
-  CHECK_STATUS;
-  return result;
-}
-
-napi_value setFramePktPos(napi_env env, napi_callback_info info) {
-  napi_status status;
-  napi_value result;
-  napi_valuetype type;
-  frameData* f;
-
-  size_t argc = 1;
-  napi_value args[1];
-
-  status = napi_get_cb_info(env, info, &argc, args, nullptr, (void**) &f);
-  CHECK_STATUS;
-  if (argc < 1) {
-    NAPI_THROW_ERROR("Set frame pkt_pos must be provided with a value.");
-  }
-  status = napi_typeof(env, args[0], &type);
-  CHECK_STATUS;
-  if (type != napi_number) {
-    NAPI_THROW_ERROR("Frame pkt_pos property must be set with a number.");
-  }
-  status = napi_get_value_int64(env, args[0], &f->frame->pkt_pos);
-  CHECK_STATUS;
-
-  status = napi_get_undefined(env, &result);
-  CHECK_STATUS;
-  return result;
-}
-
 napi_value getFramePktDuration(napi_env env, napi_callback_info info) {
   napi_status status;
   napi_value result;
@@ -1792,7 +1582,7 @@ napi_value getFramePktDuration(napi_env env, napi_callback_info info) {
   status = napi_get_cb_info(env, info, 0, nullptr, nullptr, (void**) &f);
   CHECK_STATUS;
 
-  status = napi_create_int64(env, f->frame->pkt_duration, &result);
+  status = napi_create_int64(env, f->frame->duration, &result);
   CHECK_STATUS;
   return result;
 }
@@ -1816,7 +1606,7 @@ napi_value setFramePktDuration(napi_env env, napi_callback_info info) {
   if (type != napi_number) {
     NAPI_THROW_ERROR("Frame pkt_duration property must be set with a number.");
   }
-  status = napi_get_value_int64(env, args[0], &f->frame->pkt_duration);
+  status = napi_get_value_int64(env, args[0], &f->frame->duration);
   CHECK_STATUS;
 
   status = napi_get_undefined(env, &result);
@@ -1948,7 +1738,7 @@ napi_value getFrameChannels(napi_env env, napi_callback_info info) {
   status = napi_get_cb_info(env, info, 0, nullptr, nullptr, (void**) &f);
   CHECK_STATUS;
 
-  status = napi_create_int32(env, f->frame->channels, &result);
+  status = napi_create_int32(env, f->frame->ch_layout.nb_channels, &result);
   CHECK_STATUS;
   return result;
 }
@@ -1958,6 +1748,7 @@ napi_value setFrameChannels(napi_env env, napi_callback_info info) {
   napi_value result;
   napi_valuetype type;
   frameData* f;
+  int32_t channels;
 
   size_t argc = 1;
   napi_value args[1];
@@ -1972,48 +1763,10 @@ napi_value setFrameChannels(napi_env env, napi_callback_info info) {
   if (type != napi_number) {
     NAPI_THROW_ERROR("Frame channels property must be set with a number.");
   }
-  status = napi_get_value_int32(env, args[0], (int32_t*) &f->frame->channels);
+  status = napi_get_value_int32(env, args[0], &channels);
   CHECK_STATUS;
-
-  status = napi_get_undefined(env, &result);
-  CHECK_STATUS;
-  return result;
-}
-
-napi_value getFramePktSize(napi_env env, napi_callback_info info) {
-  napi_status status;
-  napi_value result;
-  frameData* f;
-
-  status = napi_get_cb_info(env, info, 0, nullptr, nullptr, (void**) &f);
-  CHECK_STATUS;
-
-  status = napi_create_int32(env, f->frame->pkt_size, &result);
-  CHECK_STATUS;
-  return result;
-}
-
-napi_value setFramePktSize(napi_env env, napi_callback_info info) {
-  napi_status status;
-  napi_value result;
-  napi_valuetype type;
-  frameData* f;
-
-  size_t argc = 1;
-  napi_value args[1];
-
-  status = napi_get_cb_info(env, info, &argc, args, nullptr, (void**) &f);
-  CHECK_STATUS;
-  if (argc < 1) {
-    NAPI_THROW_ERROR("Set frame pkt_size must be provided with a value.");
-  }
-  status = napi_typeof(env, args[0], &type);
-  CHECK_STATUS;
-  if (type != napi_number) {
-    NAPI_THROW_ERROR("Frame pkt_size property must be set with a number.");
-  }
-  status = napi_get_value_int32(env, args[0], (int32_t*) &f->frame->pkt_size);
-  CHECK_STATUS;
+  av_channel_layout_uninit(&f->frame->ch_layout);
+  av_channel_layout_default(&f->frame->ch_layout, channels);
 
   status = napi_get_undefined(env, &result);
   CHECK_STATUS;
@@ -2312,18 +2065,13 @@ napi_value makeFrame(napi_env env, napi_callback_info info) {
         }
       }
     }
-    else if (f->frame->nb_samples > 0 && (f->frame->channel_layout || f->frame->channels > 0)) {
+    else if (f->frame->nb_samples > 0 && (f->frame->ch_layout.nb_channels > 0)) {
       int channels;
       // int planar = av_sample_fmt_is_planar((AVSampleFormat) f->frame->format);
       // int planes;
       int ret;
 
-      if (f->frame->channels < 2) { // Bump up from default of 1 if necessary
-        f->frame->channels = av_get_channel_layout_nb_channels(f->frame->channel_layout);
-        // printf("Calculated channel number %i\n", f->frame->channels);
-      }
-
-      channels = f->frame->channels;
+      channels = f->frame->ch_layout.nb_channels;
       // planes = planar ? channels : 1;
 
       // TODO: is this needed? CHECK_CHANNELS_CONSISTENCY(f->frame);
@@ -2358,8 +2106,9 @@ napi_value alloc(napi_env env, napi_callback_info info) {
       for ( int x = 0 ; x < AV_NUM_DATA_POINTERS ; x++ ) {
         if (f->frame->linesize[x] > 0) {
           int bufSize = f->frame->linesize[x] * f->frame->height;
+          const int minBufSize = 16384; // AV_INPUT_BUFFER_MIN_SIZE, removed from FFmpeg headers
           f->frame->buf[x] = av_buffer_alloc(
-            (bufSize > AV_INPUT_BUFFER_MIN_SIZE) ? bufSize : AV_INPUT_BUFFER_MIN_SIZE);
+            (bufSize > minBufSize) ? bufSize : minBufSize);
           f->frame->data[x] = f->frame->buf[x]->data;
         } else {
           f->frame->data[x] = nullptr;
@@ -2367,11 +2116,11 @@ napi_value alloc(napi_env env, napi_callback_info info) {
         }
       }
     }
-    else if (f->frame->nb_samples > 0 && (f->frame->channel_layout || f->frame->channels > 0)) {
+    else if (f->frame->nb_samples > 0 && (f->frame->ch_layout.nb_channels > 0)) {
       int planar = av_sample_fmt_is_planar((AVSampleFormat) f->frame->format);
       if (planar) {
         for ( int x = 0 ; x < AV_NUM_DATA_POINTERS ; x++ ) {
-          if (x < f->frame->channels) {
+          if (x < f->frame->ch_layout.nb_channels) {
             f->frame->buf[x] = av_buffer_alloc(f->frame->linesize[0]);
             f->frame->data[x] = f->frame->buf[x]->data;
           } else {
@@ -2468,7 +2217,7 @@ napi_value frameToJSON(napi_env env, napi_callback_info info) {
   DECLARE_GETTER3("height", f->frame->height > 0, getFrameHeight, f);
   DECLARE_GETTER3("nb_samples", f->frame->nb_samples > 0, getFrameNbSamples, f);
   DECLARE_GETTER3("format", f->frame->format > 0, getFrameFormat, f);
-  DECLARE_GETTER3("key_frame", f->frame->key_frame != 1, getFrameKeyFrame, f);
+  DECLARE_GETTER3("key_frame", (f->frame->flags & AV_FRAME_FLAG_KEY) == 0, getFrameKeyFrame, f);
   DECLARE_GETTER3("pict_type", f->frame->pict_type != AV_PICTURE_TYPE_NONE, getFramePictType, f);
   DECLARE_GETTER3("sample_aspect_ratio",
       (f->frame->sample_aspect_ratio.num != 0) || (f->frame->sample_aspect_ratio.den != 1),
@@ -2476,17 +2225,13 @@ napi_value frameToJSON(napi_env env, napi_callback_info info) {
     // 10
   DECLARE_GETTER3("pts", f->frame->pts != AV_NOPTS_VALUE, getFramePTS, f);
   DECLARE_GETTER3("pkt_dts", f->frame->pkt_dts != AV_NOPTS_VALUE, getFramePktDTS, f);
-  DECLARE_GETTER3("coded_picture_number", f->frame->coded_picture_number > 0, getFrameCodedPicNum, f);
-  DECLARE_GETTER3("display_picture_number", f->frame->display_picture_number > 0, getFrameDispPicNum, f);
   DECLARE_GETTER3("quality", f->frame->quality > 0, getFrameQuality, f);
   DECLARE_GETTER3("repeat_pict", f->frame->repeat_pict > 0, getFrameRepeatPict, f);
-  DECLARE_GETTER3("interlaced_frame", f->frame->interlaced_frame != 0, getFrameInterlaced, f);
-  DECLARE_GETTER3("top_field_first", f->frame->top_field_first != 0, getFrameTopFieldFirst, f);
-  DECLARE_GETTER3("palette_has_changed", f->frame->palette_has_changed != 0, getFramePalHasChanged, f);
-  DECLARE_GETTER3("reordered_opaque", f->frame->reordered_opaque != AV_NOPTS_VALUE, getFrameReorderOpq, f);
+  DECLARE_GETTER3("interlaced_frame", (f->frame->flags & AV_FRAME_FLAG_INTERLACED) != 0, getFrameInterlaced, f);
+  DECLARE_GETTER3("top_field_first", (f->frame->flags & AV_FRAME_FLAG_TOP_FIELD_FIRST) != 0, getFrameTopFieldFirst, f);
     // 20
   DECLARE_GETTER3("sample_rate", f->frame->sample_rate > 0, getFrameSampleRate, f);
-  DECLARE_GETTER3("channel_layout", f->frame->channel_layout != 0, getFrameChanLayout, f);
+  DECLARE_GETTER3("channel_layout", f->frame->ch_layout.nb_channels != 0, getFrameChanLayout, f);
   DECLARE_GETTER3("buf_sizes", f->frame->buf[0] != nullptr, getFrameBufSizes, f);
   DECLARE_GETTER3("side_data", f->frame->nb_side_data > 0, getFrameSideData, f);
   DECLARE_GETTER3("flags", f->frame->flags > 0, getFrameFlags, f);
@@ -2497,12 +2242,10 @@ napi_value frameToJSON(napi_env env, napi_callback_info info) {
   DECLARE_GETTER3("chroma_location", f->frame->chroma_location != AVCHROMA_LOC_UNSPECIFIED, getFrameChromaLoc, f);
     // 30
   DECLARE_GETTER3("best_effort_timestamp", f->frame->best_effort_timestamp != AV_NOPTS_VALUE, getFrameBestEffortTS, f);
-  DECLARE_GETTER3("pkt_pos", f->frame->pkt_pos >= 0, getFramePktPos, f);
-  DECLARE_GETTER3("pkt_duration", f->frame->pkt_duration > 0, getFramePktDuration, f);
+  DECLARE_GETTER3("pkt_duration", f->frame->duration > 0, getFramePktDuration, f);
   DECLARE_GETTER3("metadata", f->frame->metadata != nullptr, getFrameMetadata, f);
   DECLARE_GETTER3("decode_error_flags", f->frame->decode_error_flags > 0, getFrameDecodeErrFlags, f);
-  DECLARE_GETTER3("channels", f->frame->channels > 0, getFrameChannels, f);
-  DECLARE_GETTER3("pkt_size", f->frame->pkt_size >= 0, getFramePktSize, f);
+  DECLARE_GETTER3("channels", f->frame->ch_layout.nb_channels > 0, getFrameChannels, f);
   DECLARE_GETTER3("crop_top", f->frame->crop_top > 0, getFrameCropTop, f);
   DECLARE_GETTER3("crop_bottom", f->frame->crop_bottom > 0, getFrameCropBottom, f);
   DECLARE_GETTER3("crop_left", f->frame->crop_left > 0, getFrameCropLeft, f);
@@ -2558,10 +2301,6 @@ napi_status fromAVFrame(napi_env env, frameData* f, napi_value* result) {
       (napi_property_attributes) (napi_writable | napi_enumerable), f },
     { "pkt_dts", nullptr, nullptr, getFramePktDTS, setFramePktDTS, nullptr,
       (napi_property_attributes) (napi_writable | napi_enumerable), f },
-    { "coded_picture_number", nullptr, nullptr, getFrameCodedPicNum, setFrameCodedPicNum, nullptr,
-      (napi_property_attributes) (napi_writable | napi_enumerable), f },
-    { "display_picture_number", nullptr, nullptr, getFrameDispPicNum, setFrameDispPicNum, nullptr,
-      (napi_property_attributes) (napi_writable | napi_enumerable), f },
     { "quality", nullptr, nullptr, getFrameQuality, setFrameQuality, nullptr,
       (napi_property_attributes) (napi_writable | napi_enumerable), f },
     { "repeat_pict", nullptr, nullptr, getFrameRepeatPict, setFrameRepeatPict, nullptr,
@@ -2569,10 +2308,6 @@ napi_status fromAVFrame(napi_env env, frameData* f, napi_value* result) {
     { "interlaced_frame", nullptr, nullptr, getFrameInterlaced, setFrameInterlaced, nullptr,
       (napi_property_attributes) (napi_writable | napi_enumerable), f },
     { "top_field_first", nullptr, nullptr, getFrameTopFieldFirst, setFrameTopFieldFirst, nullptr,
-      (napi_property_attributes) (napi_writable | napi_enumerable), f },
-    { "palette_has_changed", nullptr, nullptr, getFramePalHasChanged, setFramePalHasChanged, nullptr,
-      (napi_property_attributes) (napi_writable | napi_enumerable), f },
-    { "reordered_opaque", nullptr, nullptr, getFrameReorderOpq, setFrameReorderOpq, nullptr,
       (napi_property_attributes) (napi_writable | napi_enumerable), f },
     // 20
     { "sample_rate", nullptr, nullptr, getFrameSampleRate, setFrameSampleRate, nullptr,
@@ -2598,8 +2333,6 @@ napi_status fromAVFrame(napi_env env, frameData* f, napi_value* result) {
     // 30
     { "best_effort_timestamp", nullptr, nullptr, getFrameBestEffortTS, setFrameBestEffortTS, nullptr,
       (napi_property_attributes) (napi_writable | napi_enumerable), f },
-    { "pkt_pos", nullptr, nullptr, getFramePktPos, setFramePktPos, nullptr,
-      (napi_property_attributes) (napi_writable | napi_enumerable), f },
     { "pkt_duration", nullptr, nullptr, getFramePktDuration, setFramePktDuration, nullptr,
       (napi_property_attributes) (napi_writable | napi_enumerable), f },
     { "metadata", nullptr, nullptr, getFrameMetadata, setFrameMetadata, nullptr,
@@ -2607,8 +2340,6 @@ napi_status fromAVFrame(napi_env env, frameData* f, napi_value* result) {
     { "decode_error_flags", nullptr, nullptr, getFrameDecodeErrFlags, setFrameDecodeErrFlags, nullptr,
       (napi_property_attributes) (napi_writable | napi_enumerable), f },
     { "channels", nullptr, nullptr, getFrameChannels, setFrameChannels, nullptr,
-      (napi_property_attributes) (napi_writable | napi_enumerable), f },
-    { "pkt_size", nullptr, nullptr, getFramePktSize, setFramePktSize, nullptr,
       (napi_property_attributes) (napi_writable | napi_enumerable), f },
     { "hw_frames_ctx", nullptr, nullptr, getFrameHWFramesCtx, setFrameHWFramesCtx, nullptr,
       (napi_property_attributes) (napi_writable | napi_enumerable), f},
@@ -2625,7 +2356,7 @@ napi_status fromAVFrame(napi_env env, frameData* f, napi_value* result) {
     { "toJSON", nullptr, frameToJSON, nullptr, nullptr, nullptr, napi_default, f },
     { "_frame", nullptr, nullptr, nullptr, nullptr, extFrame, napi_default, nullptr }
   };
-  status = napi_define_properties(env, jsFrame, 44, desc);
+  status = napi_define_properties(env, jsFrame, 38, desc);
   PASS_STATUS;
 
   for ( int x = 0 ; x < AV_NUM_DATA_POINTERS ; x++ ) {

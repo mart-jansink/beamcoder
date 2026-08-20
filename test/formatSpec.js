@@ -78,7 +78,6 @@ test('Minimal JSON serialization', t => {
        BITEXACT: false,
        SORT_DTS: false,
        FAST_SEEK: false,
-       SHORTEST: false,
        AUTO_BSF: true },
     probesize: 5000000,
     max_analyze_duration: 0,
@@ -151,7 +150,6 @@ test('Maximal JSON serialization', t => {
        BITEXACT: true,
        SORT_DTS: false,
        FAST_SEEK: false,
-       SHORTEST: true,
        AUTO_BSF: true },
     probesize: 6000000,
     max_analyze_duration: 47,
@@ -226,7 +224,6 @@ test('Maximal JSON serialization', t => {
        BITEXACT: true,
        SORT_DTS: false,
        FAST_SEEK: false,
-       SHORTEST: true,
        AUTO_BSF: true },
     probesize: 6000000,
     max_analyze_duration: 47,
@@ -314,7 +311,8 @@ test('Test minimal JSON stream', t => {
 test('Can set IO formats on construction', t => {
   let ifmt = beamcoder.format({ iformat: 'wav' });
   t.ok(ifmt.iformat, 'iformat has become truthy.');
-  t.ok(ifmt.priv_data, 'private data has been created.');
+  t.equal(ifmt.priv_data, null,
+    'private data is not pre-allocated (FFmpeg 8 manages it internally in avformat_open_input).');
   t.equal(ifmt.type, 'demuxer', 'has turned into a demuxer.');
   t.equal(ifmt.iformat.name, 'wav', 'iformat has the expected name.');
 

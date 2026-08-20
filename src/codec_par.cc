@@ -922,8 +922,7 @@ napi_value getCodecParChanLayout(napi_env env, napi_callback_info info) {
   status = napi_get_cb_info(env, info, 0, nullptr, nullptr, (void**) &c);
   CHECK_STATUS;
 
-  av_get_channel_layout_string(enumName, 64, 0,
-    c->channel_layout ? c->channel_layout : av_get_default_channel_layout(c->channels));
+  av_channel_layout_describe(&c->ch_layout, enumName, 64);
   status = napi_create_string_utf8(env, enumName, NAPI_AUTO_LENGTH, &result);
   CHECK_STATUS;
 
@@ -937,7 +936,6 @@ napi_value setCodecParChanLayout(napi_env env, napi_callback_info info) {
   AVCodecParameters* c;
   char* enumString;
   size_t strLen;
-  uint64_t chanLay;
 
   size_t argc = 1;
   napi_value args[1];
@@ -949,7 +947,7 @@ napi_value setCodecParChanLayout(napi_env env, napi_callback_info info) {
   status = napi_typeof(env, args[0], &type);
   CHECK_STATUS;
   if ((type == napi_null) || (type == napi_undefined)) {
-    c->channel_layout = 0;
+    av_channel_layout_uninit(&c->ch_layout);
     goto done;
   }
   if (type != napi_string) {
@@ -962,13 +960,12 @@ napi_value setCodecParChanLayout(napi_env env, napi_callback_info info) {
   status = napi_get_value_string_utf8(env, args[0], enumString, strLen + 1, &strLen);
   CHECK_STATUS;
 
-  chanLay = av_get_channel_layout((const char *) enumString);
-  free(enumString);
-  if (chanLay != 0) {
-    c->channel_layout = chanLay;
-  } else {
+  av_channel_layout_uninit(&c->ch_layout);
+  if (av_channel_layout_from_string(&c->ch_layout, (const char *) enumString) < 0) {
+    free(enumString);
     NAPI_THROW_ERROR("Channel layout name is not recognized. Set 'null' for '0 channels'.");
   }
+  free(enumString);
 
 done:
   status = napi_get_undefined(env, &result);
@@ -1086,7 +1083,7 @@ napi_value setCodecParLevel(napi_env env, napi_callback_info info) {
   status = napi_typeof(env, args[0], &type);
   CHECK_STATUS;
   if ((type == napi_null) || (type == napi_undefined)) {
-    c->level = FF_LEVEL_UNKNOWN;
+    c->level = AV_LEVEL_UNKNOWN;
     goto done;
   }
   if (type != napi_number) {
@@ -1230,7 +1227,7 @@ napi_value getCodecParChannels(napi_env env, napi_callback_info info) {
   status = napi_get_cb_info(env, info, 0, nullptr, nullptr, (void**) &c);
   CHECK_STATUS;
 
-  status = napi_create_int32(env, c->channels, &result);
+  status = napi_create_int32(env, c->ch_layout.nb_channels, &result);
   CHECK_STATUS;
   return result;
 }
@@ -1240,6 +1237,7 @@ napi_value setCodecParChannels(napi_env env, napi_callback_info info) {
   napi_value result;
   napi_valuetype type;
   AVCodecParameters* c;
+  int32_t channels;
 
   size_t argc = 1;
   napi_value args[1];
@@ -1254,8 +1252,10 @@ napi_value setCodecParChannels(napi_env env, napi_callback_info info) {
   if (type != napi_number) {
     NAPI_THROW_ERROR("Codec parameter channels must be set with a number.");
   }
-  status = napi_get_value_int32(env, args[0], &c->channels);
+  status = napi_get_value_int32(env, args[0], &channels);
   CHECK_STATUS;
+  av_channel_layout_uninit(&c->ch_layout);
+  av_channel_layout_default(&c->ch_layout, channels);
 
   status = napi_get_undefined(env, &result);
   CHECK_STATUS;
@@ -1547,7 +1547,7 @@ napi_value setCodecParProfile(napi_env env, napi_callback_info info) {
   status = napi_typeof(env, args[0], &type);
   CHECK_STATUS;
   if ((type == napi_null) || (type == napi_undefined)) {
-    c->profile = FF_PROFILE_UNKNOWN;
+    c->profile = AV_PROFILE_UNKNOWN;
     goto done;
   }
   if (type == napi_number) {
@@ -1571,9 +1571,9 @@ napi_value setCodecParProfile(napi_env env, napi_callback_info info) {
   if (!profile) {
     printf("Failed to set codec profile \'%s\' - recognised profiles not available for codec \'%s\'.\n", enumString, codecDesc->name);
     printf("Set profile as a numeric value to work around this problem.\n");
-    c->profile = FF_PROFILE_UNKNOWN;
+    c->profile = AV_PROFILE_UNKNOWN;
   } else {
-    while (profile->profile != FF_PROFILE_UNKNOWN) {
+    while (profile->profile != AV_PROFILE_UNKNOWN) {
       if (strcmp(enumString, profile->name) == 0) {
         c->profile = profile->profile;
         foundProfile = true;
@@ -1582,7 +1582,7 @@ napi_value setCodecParProfile(napi_env env, napi_callback_info info) {
       profile = profile + 1;
     }
     if (!foundProfile) {
-      c->profile = FF_PROFILE_UNKNOWN;
+      c->profile = AV_PROFILE_UNKNOWN;
       printf("Failed to find codec profile \'%s\' in recognised profiles.\n", enumString);
     }
   }
@@ -1698,8 +1698,8 @@ napi_value codecParToJSON(napi_env env, napi_callback_info info) {
   DECLARE_GETTER3("bits_per_coded_sample", c->bits_per_coded_sample > 0, getCodecParBitsPerCodedSmp, c);
     // 10
   DECLARE_GETTER3("bits_per_raw_sample", c->bits_per_raw_sample > 0, getCodecParBitsPerRawSmp, c);
-  DECLARE_GETTER3("profile", c->profile != FF_PROFILE_UNKNOWN, getCodecParProfile, c);
-  DECLARE_GETTER3("level", c->level != FF_LEVEL_UNKNOWN, getCodecParLevel, c);
+  DECLARE_GETTER3("profile", c->profile != AV_PROFILE_UNKNOWN, getCodecParProfile, c);
+  DECLARE_GETTER3("level", c->level != AV_LEVEL_UNKNOWN, getCodecParLevel, c);
   DECLARE_GETTER3("width", c->width != 0, getCodecParWidth, c);
   DECLARE_GETTER3("height", c->height != 0, getCodecParHeight, c);
   DECLARE_GETTER3("sample_aspect_ratio",
@@ -1713,8 +1713,8 @@ napi_value codecParToJSON(napi_env env, napi_callback_info info) {
   DECLARE_GETTER3("color_space", c->color_space != AVCOL_SPC_UNSPECIFIED, getCodecParColorSpace, c);
   DECLARE_GETTER3("chroma_location", c->chroma_location != AVCHROMA_LOC_UNSPECIFIED, getCodecParChromaLoc, c);
   DECLARE_GETTER3("video_delay", c->video_delay != 0, getCodecParVideoDelay, c);
-  DECLARE_GETTER3("channel_layout", c->channel_layout != 0, getCodecParChanLayout, c);
-  DECLARE_GETTER3("channels", c->channels > 0, getCodecParChannels, c);
+  DECLARE_GETTER3("channel_layout", c->ch_layout.nb_channels != 0, getCodecParChanLayout, c);
+  DECLARE_GETTER3("channels", c->ch_layout.nb_channels > 0, getCodecParChannels, c);
   DECLARE_GETTER3("sample_rate", c->sample_rate > 0, getCodecParSampleRate, c);
   DECLARE_GETTER3("block_align", c->block_align > 0, getCodecParBlockAlign, c);
   DECLARE_GETTER3("frame_size", c->frame_size > 0, getCodecParFrameSize, c);

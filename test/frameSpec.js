@@ -34,7 +34,7 @@ test('Minimal JSON serialization', t => {
   let fp = JSON.stringify(fr);
   t.ok(fp, 'JSON serialization is truthy.');
   let pfp = JSON.parse(fp);
-  t.deepEqual(pfp, { type: 'Frame', linesize: [], reordered_opaque: 0 }, 'makes minimal JSON.');
+  t.deepEqual(pfp, { type: 'Frame', linesize: [], key_frame: false }, 'makes minimal JSON.');
   let rf = beamcoder.frame(fp);
   t.ok(rf, 'roundtrip is truthy.');
   t.equal(util.inspect(rf), util.inspect(beamcoder.frame()), 'same as a new frame.');
@@ -53,14 +53,10 @@ test('Maximal JSON serialization', t => {
     sample_aspect_ratio: [ 16, 9 ],
     pts: 46,
     pkt_dts: 47,
-    coded_picture_number: 48,
-    display_picture_number: 49,
     quality: 50,
     repeat_pict: 51,
     interlaced_frame: true,
     top_field_first: true,
-    palette_has_changed: true,
-    reordered_opaque: 52,
     sample_rate: 48000,
     channel_layout: 'stereo',
     data: [ Buffer.from('wibble wobble wibble wobble jelly on a place at least 42 chars and some more')],
@@ -72,12 +68,10 @@ test('Maximal JSON serialization', t => {
     colorspace: 'bt709',
     chroma_location: 'top',
     best_effort_timestamp: 53,
-    pkt_pos: 54,
     pkt_duration: 55,
     metadata: { fred: 'ginger' },
     decode_error_flags: { INVALID_BITSTREAM: true, MISSING_REFERENCE: false },
     channels: 2,
-    pkt_size: 56,
     crop_top: 57,
     crop_bottom: 58,
     crop_left: 59,
@@ -98,14 +92,10 @@ test('Maximal JSON serialization', t => {
     sample_aspect_ratio: [ 16, 9 ],
     pts: 46,
     pkt_dts: 47,
-    coded_picture_number: 48,
-    display_picture_number: 49,
     quality: 50,
     repeat_pict: 51,
     interlaced_frame: true,
     top_field_first: true,
-    palette_has_changed: true,
-    reordered_opaque: 52,
     sample_rate: 48000,
     channel_layout: 'stereo',
     data: [], // Data does not roundtrip
@@ -117,12 +107,10 @@ test('Maximal JSON serialization', t => {
     colorspace: 'bt709',
     chroma_location: 'top',
     best_effort_timestamp: 53,
-    pkt_pos: 54,
     pkt_duration: 55,
     metadata: { fred: 'ginger' },
     decode_error_flags: { INVALID_BITSTREAM: true, MISSING_REFERENCE: false },
     channels: 2,
-    pkt_size: 56,
     crop_top: 57,
     crop_bottom: 58,
     crop_left: 59,

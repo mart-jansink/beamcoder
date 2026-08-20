@@ -214,7 +214,6 @@ create:
 
 bail:
   if (decoder != nullptr) {
-    avcodec_close(decoder);
     avcodec_free_context(&decoder);
   }
   return nullptr;
@@ -222,7 +221,6 @@ bail:
 
 void decoderFinalizer(napi_env env, void* data, void* hint) {
   AVCodecContext* decoder = (AVCodecContext*) data;
-  avcodec_close(decoder);
   avcodec_free_context(&decoder);
 }
 

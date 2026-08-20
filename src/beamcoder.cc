@@ -40,7 +40,6 @@ extern "C" {
   #include <libavformat/avformat.h>
   #include <libavutil/avutil.h>
   #include <libavutil/pixdesc.h>
-  #include <libpostproc/postprocess.h>
   #include <libswresample/swresample.h>
   #include <libswscale/swscale.h>
   #include <libavcodec/bsf.h>
@@ -72,10 +71,6 @@ napi_value versions(napi_env env, napi_callback_info info) {
   status = napi_create_uint32(env, avutil_version(), &value);
   CHECK_STATUS;
   status = napi_set_named_property(env, result, "avutil", value);
-  CHECK_STATUS;
-  status = napi_create_uint32(env, postproc_version(), &value);
-  CHECK_STATUS;
-  status = napi_set_named_property(env, result, "postproc", value);
   CHECK_STATUS;
   status = napi_create_uint32(env, swresample_version(), &value);
   CHECK_STATUS;
@@ -144,13 +139,6 @@ napi_value versionStrings(napi_env env, napi_callback_info info) {
   status = napi_set_named_property(env, result, "avutil", value);
   CHECK_STATUS;
 
-  sprintf(vstr, "%i.%i.%i", LIBPOSTPROC_VERSION_MAJOR, LIBPOSTPROC_VERSION_MINOR,
-    LIBPOSTPROC_VERSION_MICRO);
-  status = napi_create_string_utf8(env, vstr, NAPI_AUTO_LENGTH, &value);
-  CHECK_STATUS;
-  status = napi_set_named_property(env, result, "postproc", value);
-  CHECK_STATUS;
-
   sprintf(vstr, "%i.%i.%i", LIBSWRESAMPLE_VERSION_MAJOR, LIBSWRESAMPLE_VERSION_MINOR,
     LIBSWRESAMPLE_VERSION_MICRO);
   status = napi_create_string_utf8(env, vstr, NAPI_AUTO_LENGTH, &value);
@@ -195,10 +183,6 @@ napi_value configurations(napi_env env, napi_callback_info info) {
   CHECK_STATUS;
   status = napi_set_named_property(env, result, "avutil", value);
   CHECK_STATUS;
-  status = napi_create_string_utf8(env, postproc_configuration(), NAPI_AUTO_LENGTH, &value);
-  CHECK_STATUS;
-  status = napi_set_named_property(env, result, "postproc", value);
-  CHECK_STATUS;
   status = napi_create_string_utf8(env, swresample_configuration(), NAPI_AUTO_LENGTH, &value);
   CHECK_STATUS;
   status = napi_set_named_property(env, result, "swresample", value);
@@ -238,10 +222,6 @@ napi_value licenses(napi_env env, napi_callback_info info) {
   CHECK_STATUS;
   status = napi_set_named_property(env, result, "avutil", value);
   CHECK_STATUS;
-  status = napi_create_string_utf8(env, postproc_license(), NAPI_AUTO_LENGTH, &value);
-  CHECK_STATUS;
-  status = napi_set_named_property(env, result, "postproc", value);
-  CHECK_STATUS;
   status = napi_create_string_utf8(env, swresample_license(), NAPI_AUTO_LENGTH, &value);
   CHECK_STATUS;
   status = napi_set_named_property(env, result, "swresample", value);
@@ -263,7 +243,7 @@ napi_status fromAVCodec(napi_env env, const AVCodec* codec, napi_value *result) 
   const int* samplerate;
   const AVCodecDescriptor* codecDesc;
   const enum AVSampleFormat* samplefmt;
-  const uint64_t* chanlay;
+  const AVChannelLayout* chanlay;
   int32_t index = 0;
 
   status = napi_get_null(env, &nullval);
@@ -296,8 +276,6 @@ napi_status fromAVCodec(napi_env env, const AVCodec* codec, napi_value *result) 
   status = beam_set_bool(env, props, "DELAY", codec->capabilities & AV_CODEC_CAP_DELAY);
   PASS_STATUS;
   status = beam_set_bool(env, props, "SMALL_LAST_FRAME", codec->capabilities & AV_CODEC_CAP_SMALL_LAST_FRAME);
-  PASS_STATUS;
-  status = beam_set_bool(env, props, "SUBFRAMES", codec->capabilities & AV_CODEC_CAP_SUBFRAMES);
   PASS_STATUS;
   status = beam_set_bool(env, props, "EXPERIMENTAL", codec->capabilities & AV_CODEC_CAP_EXPERIMENTAL);
   PASS_STATUS;
@@ -406,14 +384,14 @@ napi_status fromAVCodec(napi_env env, const AVCodec* codec, napi_value *result) 
     PASS_STATUS;
   }
 
-  if (codec->channel_layouts != nullptr) {
+  if (codec->ch_layouts != nullptr) {
     status = napi_create_array(env, &array);
     PASS_STATUS;
-    chanlay = codec->channel_layouts;
+    chanlay = codec->ch_layouts;
     index = 0;
-    while (*chanlay != 0) {
+    while (chanlay->nb_channels != 0) {
       char chanLayStr[64];
-      av_get_channel_layout_string(chanLayStr, 64, 0, *chanlay);
+      av_channel_layout_describe(chanlay, chanLayStr, 64);
       status = napi_create_string_utf8(env, chanLayStr, NAPI_AUTO_LENGTH, &element);
       PASS_STATUS;
       status = napi_set_element(env, array, index++, element);
@@ -446,7 +424,7 @@ napi_status fromAVCodec(napi_env env, const AVCodec* codec, napi_value *result) 
     profile = codec->profiles;
     index = 0;
     // printf("Profiles for %s %s\n", codec->name, profile->name);
-    while (profile->profile != FF_PROFILE_UNKNOWN) {
+    while (profile->profile != AV_PROFILE_UNKNOWN) {
       status = napi_create_string_utf8(env, profile->name, NAPI_AUTO_LENGTH, &element);
       PASS_STATUS;
       status = napi_set_element(env, array, index++, element);

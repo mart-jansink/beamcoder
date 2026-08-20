@@ -869,47 +869,6 @@ napi_value setCodecCtxTimeBase(napi_env env, napi_callback_info info) {
   return result;
 }
 
-napi_value getCodecCtxTicksPerFrame(napi_env env, napi_callback_info info) {
-  napi_status status;
-  napi_value result;
-  AVCodecContext* codec;
-
-  size_t argc = 0;
-  status = napi_get_cb_info(env, info, &argc, nullptr, nullptr, (void**) &codec);
-  CHECK_STATUS;
-  status = napi_create_int32(env, codec->ticks_per_frame, &result);
-  CHECK_STATUS;
-
-  return result;
-}
-
-napi_value setCodecCtxTicksPerFrame(napi_env env, napi_callback_info info) {
-  napi_status status;
-  napi_value result;
-  napi_valuetype type;
-  AVCodecContext* codec;
-
-  size_t argc = 1;
-  napi_value args[1];
-  status = napi_get_cb_info(env, info, &argc, args, nullptr, (void**) &codec);
-  CHECK_STATUS;
-  if (argc < 1) {
-    NAPI_THROW_ERROR("A value is required to set the ticks_per_frame property.");
-  }
-  status = napi_typeof(env, args[0], &type);
-  CHECK_STATUS;
-  if (type != napi_number) {
-    NAPI_THROW_ERROR("A number is required to set the ticks_per_frame property.");
-  }
-
-  status = napi_get_value_int32(env, args[0], &codec->ticks_per_frame);
-  CHECK_STATUS;
-
-  status = napi_get_undefined(env, &result);
-  CHECK_STATUS;
-  return result;
-}
-
 napi_value getCodecCtxDelay(napi_env env, napi_callback_info info) {
   napi_status status;
   napi_value result;
@@ -1616,133 +1575,6 @@ napi_value setCodecCtxDarkMasking(napi_env env, napi_callback_info info) {
   status = napi_get_value_double(env, args[0], (double*) &codec->dark_masking);
   CHECK_STATUS;
 
-  status = napi_get_undefined(env, &result);
-  CHECK_STATUS;
-  return result;
-}
-
-napi_value getCodecCtxSliceCount(napi_env env, napi_callback_info info) {
-  napi_status status;
-  napi_value result;
-  AVCodecContext* codec;
-
-  size_t argc = 0;
-  status = napi_get_cb_info(env, info, &argc, nullptr, nullptr, (void**) &codec);
-  CHECK_STATUS;
-  status = napi_create_int32(env, codec->slice_count, &result);
-  CHECK_STATUS;
-
-  return result;
-}
-
-napi_value setCodecCtxSliceCount(napi_env env, napi_callback_info info) {
-  napi_status status;
-  napi_value result;
-  napi_valuetype type;
-  AVCodecContext* codec;
-
-  size_t argc = 1;
-  napi_value args[1];
-  status = napi_get_cb_info(env, info, &argc, args, nullptr, (void**) &codec);
-  CHECK_STATUS;
-  if (argc < 1) {
-    NAPI_THROW_ERROR("A value is required to set the slice_count property.");
-  }
-  status = napi_typeof(env, args[0], &type);
-  CHECK_STATUS;
-  if (type != napi_number) {
-    NAPI_THROW_ERROR("A number is required to set the slice_count property.");
-  }
-
-  status = napi_get_value_int32(env, args[0], &codec->slice_count);
-  CHECK_STATUS;
-
-  status = napi_get_undefined(env, &result);
-  CHECK_STATUS;
-  return result;
-}
-
-napi_value getCodecCtxSliceOffset(napi_env env, napi_callback_info info) {
-  napi_status status;
-  napi_value result, element;
-  AVCodecContext* codec;
-
-  size_t argc = 0;
-  status = napi_get_cb_info(env, info, &argc, nullptr, nullptr, (void**) &codec);
-  CHECK_STATUS;
-  if ((codec->slice_count > 0) && (codec->slice_offset != nullptr)) {
-    status = napi_create_array(env, &result);
-    CHECK_STATUS;
-    for ( int x = 0 ; x < codec->slice_count ; x++ ) {
-      status = napi_create_int32(env, codec->slice_offset[x], &element);
-      CHECK_STATUS;
-      status = napi_set_element(env, result, x, element);
-      CHECK_STATUS;
-    }
-  } else {
-    status = napi_get_null(env, &result);
-    CHECK_STATUS;
-  }
-
-  return result;
-}
-
-napi_value setCodecCtxSliceOffset(napi_env env, napi_callback_info info) {
-  napi_status status;
-  napi_value result, element;
-  napi_valuetype type;
-  bool isArray;
-  AVCodecContext* codec;
-  int sliceCount;
-
-  size_t argc = 1;
-  napi_value args[1];
-  status = napi_get_cb_info(env, info, &argc, args, nullptr, (void**) &codec);
-  CHECK_STATUS;
-  if (argc < 1) {
-    NAPI_THROW_ERROR("A value is required to set the slice_offset property.");
-  }
-  status = napi_typeof(env, args[0], &type);
-  CHECK_STATUS;
-  if ((type == napi_null) || (type == napi_undefined)) {
-    codec->slice_count = 0;
-    codec->slice_offset = nullptr;
-    goto done;
-  }
-  status = napi_is_array(env, args[0], &isArray);
-  CHECK_STATUS;
-  if (!isArray) {
-    napi_value propNames;
-    status = napi_get_property_names(env, args[0], &propNames);
-    CHECK_STATUS;
-    status = napi_get_array_length(env, propNames, (uint32_t*) &sliceCount);
-    CHECK_STATUS;
-  } else {
-    status = napi_get_array_length(env, args[0], (uint32_t*) &sliceCount);
-    CHECK_STATUS;
-  }
-  for ( int x = 0 ; x < sliceCount ; x++ ) {
-    status = napi_get_element(env, args[0], x, &element);
-    if (status != napi_ok) {
-      NAPI_THROW_ERROR("An array of numbers is required to set the slice_offset property.");
-    }
-    status = napi_typeof(env, element, &type);
-    CHECK_STATUS;
-    if (type != napi_number) {
-      NAPI_THROW_ERROR("Only values of number type can be used to set the slice_offset property.");
-    }
-  }
-
-  codec->slice_count = sliceCount;
-  codec->slice_offset = (int*) av_malloc(sizeof(int) * sliceCount);
-  for ( int x = 0 ; x < sliceCount ; x++ ) {
-    status = napi_get_element(env, args[0], x, &element);
-    CHECK_STATUS;
-    status = napi_get_value_int32(env, element, &codec->slice_offset[x]);
-    CHECK_STATUS;
-  }
-
-done:
   status = napi_get_undefined(env, &result);
   CHECK_STATUS;
   return result;
@@ -3403,7 +3235,7 @@ napi_value getCodecCtxChannels(napi_env env, napi_callback_info info) {
   size_t argc = 0;
   status = napi_get_cb_info(env, info, &argc, nullptr, nullptr, (void**) &codec);
   CHECK_STATUS;
-  status = napi_create_int32(env, codec->channels, &result);
+  status = napi_create_int32(env, codec->ch_layout.nb_channels, &result);
   CHECK_STATUS;
 
   return result;
@@ -3414,6 +3246,7 @@ napi_value setCodecCtxChannels(napi_env env, napi_callback_info info) {
   napi_value result;
   napi_valuetype type;
   AVCodecContext* codec;
+  int32_t channels;
 
   size_t argc = 1;
   napi_value args[1];
@@ -3428,8 +3261,10 @@ napi_value setCodecCtxChannels(napi_env env, napi_callback_info info) {
     NAPI_THROW_ERROR("A number is required to set the channels property.");
   }
 
-  status = napi_get_value_int32(env, args[0], &codec->channels);
+  status = napi_get_value_int32(env, args[0], &channels);
   CHECK_STATUS;
+  av_channel_layout_uninit(&codec->ch_layout);
+  av_channel_layout_default(&codec->ch_layout, channels);
 
   status = napi_get_undefined(env, &result);
   CHECK_STATUS;
@@ -3526,7 +3361,7 @@ napi_value getCodecCtxFrameNb(napi_env env, napi_callback_info info) {
   size_t argc = 0;
   status = napi_get_cb_info(env, info, &argc, nullptr, nullptr, (void**) &codec);
   CHECK_STATUS;
-  status = napi_create_int32(env, codec->frame_number, &result);
+  status = napi_create_int32(env, codec->frame_num, &result);
   CHECK_STATUS;
 
   return result;
@@ -3624,8 +3459,7 @@ napi_value getCodecCtxChanLayout(napi_env env, napi_callback_info info) {
   status = napi_get_cb_info(env, info, &argc, nullptr, nullptr, (void**) &codec);
   CHECK_STATUS;
 
-  av_get_channel_layout_string(channelLayoutName, 64, 0,
-    codec->channel_layout ? codec->channel_layout : av_get_default_channel_layout(codec->channels));
+  av_channel_layout_describe(&codec->ch_layout, channelLayoutName, 64);
   status = napi_create_string_utf8(env, channelLayoutName, NAPI_AUTO_LENGTH, &result);
   CHECK_STATUS;
 
@@ -3639,7 +3473,6 @@ napi_value setCodecCtxChanLayout(napi_env env, napi_callback_info info) {
   AVCodecContext* codec;
   char* name;
   size_t strLen;
-  uint64_t chanLay;
 
   size_t argc = 1;
   napi_value args[1];
@@ -3651,7 +3484,7 @@ napi_value setCodecCtxChanLayout(napi_env env, napi_callback_info info) {
   status = napi_typeof(env, args[0], &type);
   CHECK_STATUS;
   if ((type == napi_null) || (type == napi_undefined)) {
-    codec->channel_layout = 0;
+    av_channel_layout_uninit(&codec->ch_layout);
     goto done;
   }
   if (type != napi_string) {
@@ -3663,81 +3496,12 @@ napi_value setCodecCtxChanLayout(napi_env env, napi_callback_info info) {
   status = napi_get_value_string_utf8(env, args[0], name, strLen + 1, &strLen);
   CHECK_STATUS;
 
-  chanLay = av_get_channel_layout(name);
-  free(name);
-  if (chanLay != 0) {
-    codec->channel_layout = chanLay;
-    codec->channels = av_get_channel_layout_nb_channels(chanLay);
-  } else {
+  av_channel_layout_uninit(&codec->ch_layout);
+  if (av_channel_layout_from_string(&codec->ch_layout, name) < 0) {
+    free(name);
     NAPI_THROW_ERROR("Channel layout name is not recognized. Set 'null' for '0 channels'.");
   }
-
-done:
-  status = napi_get_undefined(env, &result);
-  CHECK_STATUS;
-  return result;
-}
-
-napi_value getCodecCtxReqChanLayout(napi_env env, napi_callback_info info) {
-  napi_status status;
-  napi_value result;
-  AVCodecContext* codec;
-  char channelLayoutName[64];
-
-  size_t argc = 0;
-  status = napi_get_cb_info(env, info, &argc, nullptr, nullptr, (void**) &codec);
-  CHECK_STATUS;
-
-  if (codec->request_channel_layout) {
-    av_get_channel_layout_string(channelLayoutName, 64, 0, codec->request_channel_layout);
-    status = napi_create_string_utf8(env, channelLayoutName, NAPI_AUTO_LENGTH, &result);
-    CHECK_STATUS;
-  } else {
-    status = napi_create_string_utf8(env, "default", NAPI_AUTO_LENGTH, &result);
-    CHECK_STATUS;
-  }
-
-  return result;
-}
-
-napi_value setCodecCtxReqChanLayout(napi_env env, napi_callback_info info) {
-  napi_status status;
-  napi_value result;
-  napi_valuetype type;
-  AVCodecContext* codec;
-  char* name;
-  size_t strLen;
-  uint64_t chanLay;
-
-  size_t argc = 1;
-  napi_value args[1];
-  status = napi_get_cb_info(env, info, &argc, args, nullptr, (void**) &codec);
-  CHECK_STATUS;
-  if (argc < 1) {
-    NAPI_THROW_ERROR("A value is required to set the request_channel_layout property.");
-  }
-  status = napi_typeof(env, args[0], &type);
-  CHECK_STATUS;
-  if ((type == napi_null) || (type == napi_undefined)) {
-    codec->request_channel_layout = 0;
-    goto done;
-  }
-  if (type != napi_string) {
-    NAPI_THROW_ERROR("A string is required to set the request_channel_layout property.");
-  }
-  status = napi_get_value_string_utf8(env, args[0], nullptr, 0, &strLen);
-  CHECK_STATUS;
-  name = (char*) malloc(sizeof(char) * (strLen + 1));
-  status = napi_get_value_string_utf8(env, args[0], name, strLen + 1, &strLen);
-  CHECK_STATUS;
-
-  chanLay = av_get_channel_layout(name);
   free(name);
-  if (chanLay != 0) {
-    codec->request_channel_layout = chanLay;
-  } else {
-    NAPI_THROW_ERROR("Request channel layout name is not recognized. Set 'null' for '0 channels'.");
-  }
 
 done:
   status = napi_get_undefined(env, &result);
@@ -5050,47 +4814,6 @@ napi_value setCodecCtxErrRecog(napi_env env, napi_callback_info info) {
   return result;
 }
 
-napi_value getCodecCtxReorderOpaq(napi_env env, napi_callback_info info) {
-  napi_status status;
-  napi_value result;
-  AVCodecContext* codec;
-
-  size_t argc = 0;
-  status = napi_get_cb_info(env, info, &argc, nullptr, nullptr, (void**) &codec);
-  CHECK_STATUS;
-  status = napi_create_int64(env, codec->reordered_opaque, &result);
-  CHECK_STATUS;
-
-  return result;
-}
-
-napi_value setCodecCtxReorderOpaq(napi_env env, napi_callback_info info) {
-  napi_status status;
-  napi_value result;
-  napi_valuetype type;
-  AVCodecContext* codec;
-
-  size_t argc = 1;
-  napi_value args[1];
-  status = napi_get_cb_info(env, info, &argc, args, nullptr, (void**) &codec);
-  CHECK_STATUS;
-  if (argc < 1) {
-    NAPI_THROW_ERROR("A value is required to set the reordered_opaque property.");
-  }
-  status = napi_typeof(env, args[0], &type);
-  CHECK_STATUS;
-  if (type != napi_number) {
-    NAPI_THROW_ERROR("A number is required to set the reordered_opaque property.");
-  }
-
-  status = napi_get_value_int64(env, args[0], &codec->reordered_opaque);
-  CHECK_STATUS;
-
-  status = napi_get_undefined(env, &result);
-  CHECK_STATUS;
-  return result;
-}
-
 napi_value getCodecCtxError(napi_env env, napi_callback_info info) {
   napi_status status;
   napi_value result, element;
@@ -5507,7 +5230,7 @@ napi_value setCodecCtxProfile(napi_env env, napi_callback_info info) {
   status = napi_typeof(env, args[0], &type);
   CHECK_STATUS;
   if ((type == napi_null) || (type == napi_undefined)) {
-    codec->profile = FF_PROFILE_UNKNOWN;
+    codec->profile = AV_PROFILE_UNKNOWN;
     goto done;
   }
   if (type == napi_number) {
@@ -5528,9 +5251,9 @@ napi_value setCodecCtxProfile(napi_env env, napi_callback_info info) {
   if (!profile) {
     printf("Failed to set codec profile \'%s\' - recognised profiles not available for codec \'%s\'.\n", name, codec->codec->name);
     printf("Set profile as a numeric value to work around this problem.\n");
-    codec->profile = FF_PROFILE_UNKNOWN;
+    codec->profile = AV_PROFILE_UNKNOWN;
   } else {
-    while (profile->profile != FF_PROFILE_UNKNOWN) {
+    while (profile->profile != AV_PROFILE_UNKNOWN) {
       if (strcmp(name, profile->name) == 0) {
         codec->profile = profile->profile;
         foundProfile = true;
@@ -5540,7 +5263,7 @@ napi_value setCodecCtxProfile(napi_env env, napi_callback_info info) {
     }
 
     if (!foundProfile) {
-      codec->profile = FF_PROFILE_UNKNOWN;
+      codec->profile = AV_PROFILE_UNKNOWN;
       printf("Failed to find codec profile \'%s\' in recognised profiles.\n", name);
     }
   }
@@ -5582,7 +5305,7 @@ napi_value setCodecCtxLevel(napi_env env, napi_callback_info info) {
   status = napi_typeof(env, args[0], &type);
   CHECK_STATUS;
   if ((type == napi_null) || (type == napi_undefined)) {
-    codec->level = FF_LEVEL_UNKNOWN;
+    codec->level = AV_LEVEL_UNKNOWN;
     goto done;
   }
   if (type != napi_number) {
@@ -6820,8 +6543,6 @@ napi_status fromAVCodecContext(napi_env env, AVCodecContext* codec,
     { "time_base", nullptr, nullptr, getCodecCtxTimeBase,
        encoding ? setCodecCtxTimeBase : failDecoding, nullptr,
        (napi_property_attributes) (napi_writable | napi_enumerable), codec},
-    { "ticks_per_frame", nullptr, nullptr, getCodecCtxTicksPerFrame, setCodecCtxTicksPerFrame, nullptr,
-      (napi_property_attributes) (napi_writable | napi_enumerable), codec},
     { "delay", nullptr, nullptr, getCodecCtxDelay, failBoth, nullptr,
        napi_enumerable, codec},
     { "width", nullptr, nullptr, getCodecCtxWidth, setCodecCtxWidth, nullptr,
@@ -6886,12 +6607,6 @@ napi_status fromAVCodecContext(napi_env env, AVCodecContext* codec,
       encoding ? getCodecCtxDarkMasking : nullptr,
       encoding ? setCodecCtxDarkMasking : failDecoding, nullptr,
       encoding ? (napi_property_attributes) (napi_writable | napi_enumerable) : napi_default, codec},
-    { "slice_count", nullptr, nullptr, getCodecCtxSliceCount,
-      encoding ? failEncoding : setCodecCtxSliceCount, nullptr,
-      encoding ? napi_enumerable : (napi_property_attributes) (napi_writable | napi_enumerable), codec},
-    { "slice_offset", nullptr, nullptr, getCodecCtxSliceOffset,
-      encoding ? failEncoding : setCodecCtxSliceOffset, nullptr,
-      encoding ? napi_enumerable : (napi_property_attributes) (napi_writable | napi_enumerable), codec},
     { "sample_aspect_ratio", nullptr, nullptr, getCodecCtxSampleAspRt,
       encoding ? setCodecCtxSampleAspRt : failDecoding, nullptr,
       encoding ? (napi_property_attributes) (napi_writable | napi_enumerable) : napi_enumerable, codec},
@@ -7028,10 +6743,6 @@ napi_status fromAVCodecContext(napi_env env, AVCodecContext* codec,
       (napi_property_attributes) (napi_writable | napi_enumerable), codec},
     { "channel_layout", nullptr, nullptr, getCodecCtxChanLayout, setCodecCtxChanLayout, nullptr,
       (napi_property_attributes) (napi_writable | napi_enumerable), codec},
-    { "request_channel_layout", nullptr, nullptr,
-      encoding ? nullptr : getCodecCtxReqChanLayout,
-      encoding ? failEncoding : setCodecCtxReqChanLayout, nullptr,
-      encoding ? napi_default : (napi_property_attributes) (napi_writable | napi_enumerable), codec},
     { "audio_service_type", nullptr, nullptr, getCodecCtxAudioSvcType,
       encoding ? setCodecCtxAudioSvcType : failDecoding, nullptr,
       encoding ? (napi_property_attributes) (napi_writable | napi_enumerable) : napi_enumerable, codec},
@@ -7111,10 +6822,6 @@ napi_status fromAVCodecContext(napi_env env, AVCodecContext* codec,
     { "err_recognition", nullptr, nullptr,
       encoding ? nullptr : getCodecCtxErrRecog,
       encoding ? failEncoding : setCodecCtxErrRecog, nullptr,
-      encoding ? napi_default : (napi_property_attributes) (napi_writable | napi_enumerable), codec},
-    { "reordered_opaque", nullptr, nullptr,
-      encoding ? nullptr : getCodecCtxReorderOpaq,
-      encoding ? failEncoding : setCodecCtxReorderOpaq, nullptr,
       encoding ? napi_default : (napi_property_attributes) (napi_writable | napi_enumerable), codec},
     // TODO hwaccel_context
     { "error", nullptr, nullptr,
@@ -7254,7 +6961,7 @@ napi_status fromAVCodecContext(napi_env env, AVCodecContext* codec,
     { "demuxer", nullptr, nullptr, nullptr, nop, undef, napi_writable, nullptr},
     { "_CodecContext", nullptr, nullptr, nullptr, nullptr, extCodec, napi_default, nullptr }
   };
-  status = napi_define_properties(env, jsCodec, 143, desc);
+  status = napi_define_properties(env, jsCodec, 138, desc);
   PASS_STATUS;
 
   *result = jsCodec;
@@ -7289,7 +6996,6 @@ void codecContextFinalizer(napi_env env, void* data, void* hint) {
     av_freep(&codecCtx->subtitle_header);
     codecCtx->subtitle_header_size = 0;
   }
-  avcodec_close(codecCtx);
   avcodec_free_context(&codecCtx);
 }
 

@@ -125,6 +125,7 @@ void tidyCarrier(napi_env env, carrier* c) {
 }
 
 int32_t rejectStatus(napi_env env, carrier* c, char* file, int32_t line) {
+  int32_t status_out = c->status;
   if (c->status != BEAMCODER_SUCCESS) {
     napi_value errorValue, errorCode, errorMsg;
     napi_status status;
@@ -149,10 +150,10 @@ int32_t rejectStatus(napi_env env, carrier* c, char* file, int32_t line) {
     status = napi_reject_deferred(env, c->_deferred, errorValue);
     FLOATING_STATUS;
 
-    delete[] extMsg;
+    free(extMsg);
     tidyCarrier(env, c);
   }
-  return c->status;
+  return status_out;
 }
 
 // Should never get called
@@ -761,16 +762,19 @@ napi_status fromContextPrivData(napi_env env, void *privData, napi_value* result
         status = beam_set_string_utf8(env, optionsVal, option->name, "unmapped type: color");
         PASS_STATUS;
         break;
-      case AV_OPT_TYPE_CHANNEL_LAYOUT:
-        ret = av_opt_get_channel_layout(privData, option->name, 0, &iValue);
+      case AV_OPT_TYPE_CHLAYOUT: {
+        AVChannelLayout chLayout = {};
+        ret = av_opt_get_chlayout(privData, option->name, 0, &chLayout);
         if (ret < 0) {
           return napi_number_expected;
         }
-        av_get_channel_layout_string(chanLayStr, 64, 0, iValue);
-        // printf("fromPrivOptions: channel layout option %s: %lli - %s\n", option->name, iValue, chanLayStr);
+        av_channel_layout_describe(&chLayout, chanLayStr, 64);
+        // printf("fromPrivOptions: channel layout option %s: %s\n", option->name, chanLayStr);
         status = beam_set_string_utf8(env, optionsVal, option->name, chanLayStr);
+        av_channel_layout_uninit(&chLayout);
         PASS_STATUS;
         break;
+      }
       case AV_OPT_TYPE_BOOL:
         ret = av_opt_get_int(privData, option->name, 0, &iValue);
         if (ret < 0) {
@@ -1002,7 +1006,6 @@ std::unordered_map<int, std::string> beam_ff_idct_fmap = {
   { FF_IDCT_SIMPLEARMV6, "simplearmv6" },
   { FF_IDCT_FAAN, "faan" },
   { FF_IDCT_SIMPLENEON, "simpleneon" },
-  { FF_IDCT_NONE, "none" },
   { FF_IDCT_SIMPLEAUTO, "simpleauto" },
 };
 const beamEnum* beam_ff_idct = new beamEnum(beam_ff_idct_fmap);
@@ -1057,7 +1060,7 @@ std::unordered_map<int, std::string> beam_option_type_fmap = {
   { AV_OPT_TYPE_VIDEO_RATE, "video_rate" }, ///< offset must point to AVRational
   { AV_OPT_TYPE_DURATION, "duration" },
   { AV_OPT_TYPE_COLOR, "color" },
-  { AV_OPT_TYPE_CHANNEL_LAYOUT, "channel_layout" },
+  { AV_OPT_TYPE_CHLAYOUT, "channel_layout" },
   { AV_OPT_TYPE_BOOL, "bool" }
 };
 const beamEnum* beam_option_type = new beamEnum(beam_option_type_fmap);

@@ -24,20 +24,6 @@
           "-fexceptions"
         ]
       }],
-      ['OS!="win" and OS!="linux"', {
-        "link_settings": {
-          "libraries": [
-            "-lavcodec",
-            "-lavdevice",
-            "-lavfilter",
-            "-lavformat",
-            "-lavutil",
-            "-lpostproc",
-            "-lswresample",
-            "-lswscale"
-          ]
-        }
-      }],
       ['OS=="win"', {
         "configurations": {
           "Release": {
@@ -57,7 +43,6 @@
           "-l../ffmpeg/ffmpeg-5.x-win64-shared/lib/avfilter",
           "-l../ffmpeg/ffmpeg-5.x-win64-shared/lib/avformat",
           "-l../ffmpeg/ffmpeg-5.x-win64-shared/lib/avutil",
-          "-l../ffmpeg/ffmpeg-5.x-win64-shared/lib/postproc",
           "-l../ffmpeg/ffmpeg-5.x-win64-shared/lib/swresample",
           "-l../ffmpeg/ffmpeg-5.x-win64-shared/lib/swscale"
         ],
@@ -70,7 +55,6 @@
                 "ffmpeg/ffmpeg-5.x-win64-shared/bin/avfilter-8.dll",
                 "ffmpeg/ffmpeg-5.x-win64-shared/bin/avformat-59.dll",
                 "ffmpeg/ffmpeg-5.x-win64-shared/bin/avutil-57.dll",
-                "ffmpeg/ffmpeg-5.x-win64-shared/bin/postproc-56.dll",
                 "ffmpeg/ffmpeg-5.x-win64-shared/bin/swresample-4.dll",
                 "ffmpeg/ffmpeg-5.x-win64-shared/bin/swscale-6.dll"
               ]
@@ -84,17 +68,22 @@
         "<!(pkg-config --libs libavfilter)",
         "<!(pkg-config --libs libavformat)",
         "<!(pkg-config --libs libavutil)",
-        "<!(pkg-config --libs libpostproc)",
         "<!(pkg-config --libs libswresample)",
         "<!(pkg-config --libs libswscale)"
       ]
     }],
     ['OS=="mac"', {
-      "include_dirs" : [
-        "/opt/homebrew/Cellar/ffmpeg/6.0/include"
+      "libraries": [
+        "<!(pkg-config --libs libavcodec)",
+        "<!(pkg-config --libs libavdevice)",
+        "<!(pkg-config --libs libavfilter)",
+        "<!(pkg-config --libs libavformat)",
+        "<!(pkg-config --libs libavutil)",
+        "<!(pkg-config --libs libswresample)",
+        "<!(pkg-config --libs libswscale)"
       ],
-      "library_dirs": [
-        "/opt/homebrew/Cellar/ffmpeg/6.0/lib",
+      "cflags_cc": [
+        "<!(pkg-config --cflags libavcodec)"
       ]
     }],
   ]

@@ -23,23 +23,24 @@ const test = require('tape');
 const beamcoder = require('../index.js');
 
 test('Version information', t => {
-  const verPos = beamcoder.avVersionInfo().indexOf('6.');
-  t.ok(verPos === 0 || verPos === 1, 'has expected version number.');
+  t.ok(beamcoder.avVersionInfo().match(/^\d+\.\d+\.\d+/), 'has expected version number.');
   t.equals(typeof beamcoder.versions(), 'object', 'versions is an object.');
-  t.equals(Object.keys(beamcoder.versions()).length, 8, 'versions has 8 entries.');
+  // avcodec, avdevice, avfilter, avformat, avutil, swresample, swscale.
+  // libpostproc is no longer counted: recent Homebrew FFmpeg builds omit it.
+  t.equals(Object.keys(beamcoder.versions()).length, 7, 'versions has 7 entries.');
   t.ok(Object.values(beamcoder.versions()).every(x => typeof x === 'number' && x > 0),
     'versions values are numbers.');
   t.equals(typeof beamcoder.versionStrings(), 'object',
     'versionStrings is an object.');
-  t.equals(Object.keys(beamcoder.versions()).length, 8,
+  t.equals(Object.keys(beamcoder.versions()).length, 7,
     'versionStrings is an object.');
   t.ok(Object.values(beamcoder.versionStrings()).every(x =>
     typeof x === 'string' && x.match(/\d+\.\d+\.\d+/)),
   'versionStrings match expected pattern.');
   t.equals(typeof beamcoder.configurations(), 'object',
     'configurations is an object.');
-  t.equals(Object.keys(beamcoder.configurations()).length, 8,
-    'configurations has 8 entries.');
+  t.equals(Object.keys(beamcoder.configurations()).length, 7,
+    'configurations has 7 entries.');
   t.ok(Object.values(beamcoder.configurations()).every(x => typeof x === 'string'),
     'configurations entry are strings.');
   t.end();
