@@ -723,20 +723,6 @@ napi_value getNumThreads(napi_env env, napi_callback_info info) {
   return result;
 }
 
-napi_value getReady(napi_env env, napi_callback_info info) {
-  napi_status status;
-  napi_value result;
-  AVFilterContext* filterContext;
-
-  status = napi_get_cb_info(env, info, nullptr, nullptr, nullptr, (void**) &filterContext);
-  CHECK_STATUS;
-
-  status = napi_create_uint32(env, filterContext->ready, &result);
-  CHECK_STATUS;
-
-  return result;
-}
-
 napi_value getExtraHwFrames(napi_env env, napi_callback_info info) {
   napi_status status;
   napi_value result;
@@ -769,10 +755,9 @@ napi_status fromAVFilterCtx(napi_env env, AVFilterContext* filtCtx, napi_value* 
     { "priv", nullptr, nullptr, getFilterCtxPrivData, setFilterCtxPrivData, nullptr, napi_enumerable, filtCtx },
     { "thread_type", nullptr, nullptr, getFilterCtxThreadType, nullptr, nullptr, napi_enumerable, filtCtx },
     { "nb_threads", nullptr, nullptr, getNumThreads, nullptr, nullptr, napi_enumerable, filtCtx },
-    { "ready", nullptr, nullptr, getReady, nullptr, nullptr, napi_enumerable, filtCtx },
     { "extra_hw_frames", nullptr, nullptr, getExtraHwFrames, nullptr, nullptr, napi_enumerable, filtCtx }
   };
-  status = napi_define_properties(env, *result, 10, desc);
+  status = napi_define_properties(env, *result, 9, desc);
   PASS_STATUS;
 
   return napi_ok;
@@ -1005,15 +990,15 @@ void filtererExecute(napi_env env, void* data) {
       auto p = c->outParams[i].find("sample_rates");
       if (p != c->outParams[i].end()) {
         const int out_sample_rates[] = { std::stoi(p->second.c_str()), -1 };
-        ret = av_opt_set_int_list(sinkCtx, "sample_rates", out_sample_rates, -1,
-                                  AV_OPT_SEARCH_CHILDREN);
+        ret = av_opt_set_bin(sinkCtx, "sample_rates", (const uint8_t*) out_sample_rates,
+                             sizeof(out_sample_rates), AV_OPT_SEARCH_CHILDREN);
         if (ret < 0) { av_log(NULL, AV_LOG_ERROR, "Cannot set output sample rate\n"); }
       }
       p = c->outParams[i].find("sample_fmts");
       if (p != c->outParams[i].end()) {
         const enum AVSampleFormat out_sample_fmts[] = { av_get_sample_fmt(p->second.c_str()), AV_SAMPLE_FMT_NONE };
-        ret = av_opt_set_int_list(sinkCtx, "sample_fmts", out_sample_fmts, AV_SAMPLE_FMT_NONE,
-                                  AV_OPT_SEARCH_CHILDREN);
+        ret = av_opt_set_bin(sinkCtx, "sample_fmts", (const uint8_t*) out_sample_fmts,
+                             sizeof(out_sample_fmts), AV_OPT_SEARCH_CHILDREN);
         if (ret < 0) { av_log(NULL, AV_LOG_ERROR, "Cannot set output sample format\n"); }
       }
       p = c->outParams[i].find("channel_layouts");
@@ -1025,8 +1010,8 @@ void filtererExecute(napi_env env, void* data) {
       auto p = c->outParams[i].find("pix_fmts");
       if (p != c->outParams[i].end()) {
         enum AVPixelFormat pix_fmts[] = { av_get_pix_fmt(p->second.c_str()), AV_PIX_FMT_NONE };
-        ret = av_opt_set_int_list(sinkCtx, "pix_fmts", pix_fmts, AV_PIX_FMT_NONE,
-                                  AV_OPT_SEARCH_CHILDREN);
+        ret = av_opt_set_bin(sinkCtx, "pix_fmts", (const uint8_t*) pix_fmts,
+                             sizeof(pix_fmts), AV_OPT_SEARCH_CHILDREN);
         if (ret < 0) { av_log(NULL, AV_LOG_ERROR, "Cannot set output pixel format\n"); }
       }
     }

@@ -2404,7 +2404,13 @@ napi_value getCodecCtxIntraDCProv(napi_env env, napi_callback_info info) {
   size_t argc = 0;
   status = napi_get_cb_info(env, info, &argc, nullptr, nullptr, (void**) &codec);
   CHECK_STATUS;
+  // FFmpeg's replacement (the MPEG-2 encoder's private "intra_dc_precision"
+  // option) only exists for that one encoder; the field stays the generic,
+  // always-present way to read/write this for any codec context.
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
   status = napi_create_int32(env, codec->intra_dc_precision, &result);
+  #pragma GCC diagnostic pop
   CHECK_STATUS;
 
   return result;
@@ -2429,7 +2435,10 @@ napi_value setCodecCtxIntraDCProv(napi_env env, napi_callback_info info) {
     NAPI_THROW_ERROR("A number is required to set the intra_dc_precision property.");
   }
 
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
   status = napi_get_value_int32(env, args[0], &codec->intra_dc_precision);
+  #pragma GCC diagnostic pop
   CHECK_STATUS;
 
   status = napi_get_undefined(env, &result);
@@ -6140,9 +6149,13 @@ napi_value getCodecCtxProps(napi_env env, napi_callback_info info) {
 
   status = napi_create_object(env, &result);
   CHECK_STATUS;
+  // No replacement is documented for AVCodecContext.properties.
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
   status = beam_set_bool(env, result, "LOSSLESS", codec->properties & FF_CODEC_PROPERTY_LOSSLESS);
   CHECK_STATUS;
   status = beam_set_bool(env, result, "CLOSED_CAPTIONS", codec->properties & FF_CODEC_PROPERTY_CLOSED_CAPTIONS);
+  #pragma GCC diagnostic pop
   CHECK_STATUS;
 
   return result;

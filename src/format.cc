@@ -3950,8 +3950,15 @@ napi_value newStream(napi_env env, napi_callback_info info) {
     // printf("Attempting to set transfer internal stream timing.\n");
     status = napi_get_value_external(env, extInput, (void**) &inputStream);
     CHECK_STATUS;
+    // FFmpeg marks this "@deprecated do not call this function" but provides
+    // no replacement API for copying timebase info from an input stream when
+    // remuxing; suppress the warning rather than reimplement its internal
+    // heuristics and risk diverging from FFmpeg's own behavior.
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
     ret = avformat_transfer_internal_stream_timing_info(fmtCtx->oformat,
       stream, inputStream, AVFMT_TBCF_AUTO);
+    #pragma GCC diagnostic pop
     if (ret < 0) {
       printf("%s", avErrorMsg("DEBUG: Failed to transfer timebase: ", ret));
     }

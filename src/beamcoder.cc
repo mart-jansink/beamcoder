@@ -238,12 +238,9 @@ napi_status fromAVCodec(napi_env env, const AVCodec* codec, napi_value *result) 
   napi_status status;
   napi_value array, element, subel, value, props, nullval;
   const AVProfile* profile;
-  const AVRational* framerate;
-  const enum AVPixelFormat* pixfmt;
-  const int* samplerate;
   const AVCodecDescriptor* codecDesc;
-  const enum AVSampleFormat* samplefmt;
-  const AVChannelLayout* chanlay;
+  const void* configs;
+  int numConfigs;
   int32_t index = 0;
 
   status = napi_get_null(env, &nullval);
@@ -298,25 +295,26 @@ napi_status fromAVCodec(napi_env env, const AVCodec* codec, napi_value *result) 
   status = napi_set_named_property(env, value, "capabilities", props);
   PASS_STATUS;
 
-  if (codec->supported_framerates != nullptr) {
+  configs = nullptr;
+  numConfigs = 0;
+  avcodec_get_supported_config(nullptr, codec, AV_CODEC_CONFIG_FRAME_RATE, 0, &configs, &numConfigs);
+  if (configs != nullptr) {
+    const AVRational* framerates = (const AVRational*) configs;
     status = napi_create_array(env, &array);
     PASS_STATUS;
-    framerate = codec->supported_framerates;
-    index = 0;
-    while ((framerate->num != 0) && (framerate->den != 0)) {
+    for (index = 0; index < numConfigs; index++) {
       status = napi_create_array(env, &element);
       PASS_STATUS;
-      status = napi_create_int32(env, framerate->num, &subel);
+      status = napi_create_int32(env, framerates[index].num, &subel);
       PASS_STATUS;
       status = napi_set_element(env, element, 0, subel);
       PASS_STATUS;
-      status = napi_create_int32(env, framerate->den, &subel);
+      status = napi_create_int32(env, framerates[index].den, &subel);
       PASS_STATUS;
       status = napi_set_element(env, element, 1, subel);
       PASS_STATUS;
-      status = napi_set_element(env, array, index++, element);
+      status = napi_set_element(env, array, index, element);
       PASS_STATUS;
-      framerate = framerate + 1;
     }
     status = napi_set_named_property(env, value, "supported_framerates", array);
     PASS_STATUS;
@@ -325,18 +323,19 @@ napi_status fromAVCodec(napi_env env, const AVCodec* codec, napi_value *result) 
     PASS_STATUS;
   }
 
-  if (codec->pix_fmts != nullptr) {
+  configs = nullptr;
+  numConfigs = 0;
+  avcodec_get_supported_config(nullptr, codec, AV_CODEC_CONFIG_PIX_FORMAT, 0, &configs, &numConfigs);
+  if (configs != nullptr) {
+    const enum AVPixelFormat* pixfmts = (const enum AVPixelFormat*) configs;
     status = napi_create_array(env, &array);
     PASS_STATUS;
-    pixfmt = codec->pix_fmts;
-    index = 0;
-    while (*pixfmt != -1) {
+    for (index = 0; index < numConfigs; index++) {
       status = napi_create_string_utf8(env,
-        (char*) av_get_pix_fmt_name(*pixfmt), NAPI_AUTO_LENGTH, &element);
+        (char*) av_get_pix_fmt_name(pixfmts[index]), NAPI_AUTO_LENGTH, &element);
       PASS_STATUS;
-      status = napi_set_element(env, array, index++, element);
+      status = napi_set_element(env, array, index, element);
       PASS_STATUS;
-      pixfmt = pixfmt + 1;
     }
     status = napi_set_named_property(env, value, "pix_fmts", array);
     PASS_STATUS;
@@ -345,17 +344,18 @@ napi_status fromAVCodec(napi_env env, const AVCodec* codec, napi_value *result) 
     PASS_STATUS;
   }
 
-  if (codec->supported_samplerates != nullptr) {
+  configs = nullptr;
+  numConfigs = 0;
+  avcodec_get_supported_config(nullptr, codec, AV_CODEC_CONFIG_SAMPLE_RATE, 0, &configs, &numConfigs);
+  if (configs != nullptr) {
+    const int* samplerates = (const int*) configs;
     status = napi_create_array(env, &array);
     PASS_STATUS;
-    samplerate = codec->supported_samplerates;
-    index = 0;
-    while (*samplerate != 0) {
-      status = napi_create_int32(env, *samplerate, &element);
+    for (index = 0; index < numConfigs; index++) {
+      status = napi_create_int32(env, samplerates[index], &element);
       PASS_STATUS;
-      status = napi_set_element(env, array, index++, element);
+      status = napi_set_element(env, array, index, element);
       PASS_STATUS;
-      samplerate = samplerate + 1;
     }
     status = napi_set_named_property(env, value, "supported_samplerates", array);
     PASS_STATUS;
@@ -364,18 +364,19 @@ napi_status fromAVCodec(napi_env env, const AVCodec* codec, napi_value *result) 
     PASS_STATUS;
   }
 
-  if (codec->sample_fmts) {
+  configs = nullptr;
+  numConfigs = 0;
+  avcodec_get_supported_config(nullptr, codec, AV_CODEC_CONFIG_SAMPLE_FORMAT, 0, &configs, &numConfigs);
+  if (configs != nullptr) {
+    const enum AVSampleFormat* samplefmts = (const enum AVSampleFormat*) configs;
     status = napi_create_array(env, &array);
     PASS_STATUS;
-    samplefmt = codec->sample_fmts;
-    index = 0;
-    while (*samplefmt != -1) {
+    for (index = 0; index < numConfigs; index++) {
       status = napi_create_string_utf8(env,
-        (char*) av_get_sample_fmt_name(*samplefmt), NAPI_AUTO_LENGTH, &element);
+        (char*) av_get_sample_fmt_name(samplefmts[index]), NAPI_AUTO_LENGTH, &element);
       PASS_STATUS;
-      status = napi_set_element(env, array, index++, element);
+      status = napi_set_element(env, array, index, element);
       PASS_STATUS;
-      samplefmt = samplefmt + 1;
     }
     status = napi_set_named_property(env, value, "sample_fmts", array);
     PASS_STATUS;
@@ -384,19 +385,20 @@ napi_status fromAVCodec(napi_env env, const AVCodec* codec, napi_value *result) 
     PASS_STATUS;
   }
 
-  if (codec->ch_layouts != nullptr) {
+  configs = nullptr;
+  numConfigs = 0;
+  avcodec_get_supported_config(nullptr, codec, AV_CODEC_CONFIG_CHANNEL_LAYOUT, 0, &configs, &numConfigs);
+  if (configs != nullptr) {
+    const AVChannelLayout* chanlays = (const AVChannelLayout*) configs;
     status = napi_create_array(env, &array);
     PASS_STATUS;
-    chanlay = codec->ch_layouts;
-    index = 0;
-    while (chanlay->nb_channels != 0) {
+    for (index = 0; index < numConfigs; index++) {
       char chanLayStr[64];
-      av_channel_layout_describe(chanlay, chanLayStr, 64);
+      av_channel_layout_describe(&chanlays[index], chanLayStr, 64);
       status = napi_create_string_utf8(env, chanLayStr, NAPI_AUTO_LENGTH, &element);
       PASS_STATUS;
-      status = napi_set_element(env, array, index++, element);
+      status = napi_set_element(env, array, index, element);
       PASS_STATUS;
-      chanlay = chanlay + 1;
     }
     status = napi_set_named_property(env, value, "channel_layouts", array);
     PASS_STATUS;
