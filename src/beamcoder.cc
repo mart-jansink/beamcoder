@@ -104,49 +104,49 @@ napi_value versionStrings(napi_env env, napi_callback_info info) {
   status = napi_create_object(env, &result);
   CHECK_STATUS;
 
-  sprintf(vstr, "%i.%i.%i", LIBAVCODEC_VERSION_MAJOR, LIBAVCODEC_VERSION_MINOR,
+  snprintf(vstr, sizeof(vstr), "%i.%i.%i", LIBAVCODEC_VERSION_MAJOR, LIBAVCODEC_VERSION_MINOR,
     LIBAVCODEC_VERSION_MICRO);
   status = napi_create_string_utf8(env, vstr, NAPI_AUTO_LENGTH, &value);
   CHECK_STATUS;
   status = napi_set_named_property(env, result, "avcodec", value);
   CHECK_STATUS;
 
-  sprintf(vstr, "%i.%i.%i", LIBAVDEVICE_VERSION_MAJOR, LIBAVDEVICE_VERSION_MINOR,
+  snprintf(vstr, sizeof(vstr), "%i.%i.%i", LIBAVDEVICE_VERSION_MAJOR, LIBAVDEVICE_VERSION_MINOR,
     LIBAVDEVICE_VERSION_MICRO);
   status = napi_create_string_utf8(env, vstr, NAPI_AUTO_LENGTH, &value);
   CHECK_STATUS;
   status = napi_set_named_property(env, result, "avdevice", value);
   CHECK_STATUS;
 
-  sprintf(vstr, "%i.%i.%i", LIBAVFILTER_VERSION_MAJOR, LIBAVFILTER_VERSION_MINOR,
+  snprintf(vstr, sizeof(vstr), "%i.%i.%i", LIBAVFILTER_VERSION_MAJOR, LIBAVFILTER_VERSION_MINOR,
     LIBAVFILTER_VERSION_MICRO);
   status = napi_create_string_utf8(env, vstr, NAPI_AUTO_LENGTH, &value);
   CHECK_STATUS;
   status = napi_set_named_property(env, result, "avfilter", value);
   CHECK_STATUS;
 
-  sprintf(vstr, "%i.%i.%i", LIBAVFORMAT_VERSION_MAJOR, LIBAVFORMAT_VERSION_MINOR,
+  snprintf(vstr, sizeof(vstr), "%i.%i.%i", LIBAVFORMAT_VERSION_MAJOR, LIBAVFORMAT_VERSION_MINOR,
     LIBAVFORMAT_VERSION_MICRO);
   status = napi_create_string_utf8(env, vstr, NAPI_AUTO_LENGTH, &value);
   CHECK_STATUS;
   status = napi_set_named_property(env, result, "avformat", value);
   CHECK_STATUS;
 
-  sprintf(vstr, "%i.%i.%i", LIBAVUTIL_VERSION_MAJOR, LIBAVUTIL_VERSION_MINOR,
+  snprintf(vstr, sizeof(vstr), "%i.%i.%i", LIBAVUTIL_VERSION_MAJOR, LIBAVUTIL_VERSION_MINOR,
     LIBAVUTIL_VERSION_MICRO);
   status = napi_create_string_utf8(env, vstr, NAPI_AUTO_LENGTH, &value);
   CHECK_STATUS;
   status = napi_set_named_property(env, result, "avutil", value);
   CHECK_STATUS;
 
-  sprintf(vstr, "%i.%i.%i", LIBSWRESAMPLE_VERSION_MAJOR, LIBSWRESAMPLE_VERSION_MINOR,
+  snprintf(vstr, sizeof(vstr), "%i.%i.%i", LIBSWRESAMPLE_VERSION_MAJOR, LIBSWRESAMPLE_VERSION_MINOR,
     LIBSWRESAMPLE_VERSION_MICRO);
   status = napi_create_string_utf8(env, vstr, NAPI_AUTO_LENGTH, &value);
   CHECK_STATUS;
   status = napi_set_named_property(env, result, "swresample", value);
   CHECK_STATUS;
 
-  sprintf(vstr, "%i.%i.%i", LIBSWSCALE_VERSION_MAJOR, LIBSWSCALE_VERSION_MINOR,
+  snprintf(vstr, sizeof(vstr), "%i.%i.%i", LIBSWSCALE_VERSION_MAJOR, LIBSWSCALE_VERSION_MINOR,
     LIBSWSCALE_VERSION_MICRO);
   status = napi_create_string_utf8(env, vstr, NAPI_AUTO_LENGTH, &value);
   CHECK_STATUS;

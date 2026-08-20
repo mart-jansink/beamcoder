@@ -49,7 +49,7 @@ napi_status checkStatus(napi_env env, napi_status status,
   }
 
   char errorCode[20];
-  sprintf(errorCode, "%d", errorInfo->error_code);
+  snprintf(errorCode, sizeof(errorCode), "%d", errorInfo->error_code);
   throwStatus = napi_throw_error(env, errorCode, errorInfo->error_message);
   assert(throwStatus == napi_ok);
 
@@ -87,7 +87,7 @@ napi_status checkArgs(napi_env env, napi_callback_info info, char* methodName,
 
   if (realArgc != argc) {
     char errorMsg[100];
-    sprintf(errorMsg, "For method %s, expected %zi arguments and got %zi.",
+    snprintf(errorMsg, sizeof(errorMsg), "For method %s, expected %zi arguments and got %zi.",
       methodName, argc, realArgc);
     napi_throw_error(env, nullptr, errorMsg);
     return napi_pending_exception;
@@ -99,7 +99,7 @@ napi_status checkArgs(napi_env env, napi_callback_info info, char* methodName,
     PASS_STATUS;
     if (t != types[x]) {
       char errorMsg[100];
-      sprintf(errorMsg, "For method %s argument %zu, expected type %s and got %s.",
+      snprintf(errorMsg, sizeof(errorMsg), "For method %s argument %zu, expected type %s and got %s.",
         methodName, x + 1, getNapiTypeName(types[x]), getNapiTypeName(t));
       napi_throw_error(env, nullptr, errorMsg);
       return napi_pending_exception;
@@ -136,10 +136,11 @@ int32_t rejectStatus(napi_env env, carrier* c, char* file, int32_t line) {
       c->errorMsg = std::string(
         (errorInfo->error_message != nullptr) ? errorInfo->error_message : "(no message)");
     }
-    char* extMsg = (char *) malloc(sizeof(char) * c->errorMsg.length() + 200);
-    sprintf(extMsg, "In file %s on line %i, found error: %s", file, line, c->errorMsg.c_str());
+    size_t extMsgSize = sizeof(char) * c->errorMsg.length() + 200;
+    char* extMsg = (char *) malloc(extMsgSize);
+    snprintf(extMsg, extMsgSize, "In file %s on line %i, found error: %s", file, line, c->errorMsg.c_str());
     char errorCodeChars[20];
-    sprintf(errorCodeChars, "%d", c->status);
+    snprintf(errorCodeChars, sizeof(errorCodeChars), "%d", c->status);
     status = napi_create_string_utf8(env, errorCodeChars,
       NAPI_AUTO_LENGTH, &errorCode);
     FLOATING_STATUS;
