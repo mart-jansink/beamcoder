@@ -278,7 +278,13 @@ napi_value setFrameFormat(napi_env env, napi_callback_info info) {
     format = (int) av_get_sample_fmt((const char*) name);
     if ((format != AV_SAMPLE_FMT_NONE) && (f->frame->nb_samples == 0)) {
       f->frame->nb_samples = 1; // Cludge ... found a sample format ... force audio mode
-      av_channel_layout_default(&f->frame->ch_layout, 1);
+      // Only default the channel layout if one hasn't already been configured
+      // (e.g. via the "channels"/"channel_layout" properties) - otherwise this
+      // clobbers a layout set earlier when the options object lists those
+      // properties before "format".
+      if (f->frame->ch_layout.nb_channels == 0) {
+        av_channel_layout_default(&f->frame->ch_layout, 1);
+      }
     }
   }
 
