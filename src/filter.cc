@@ -979,9 +979,11 @@ void filtererExecute(napi_env env, void* data) {
   c->sinkCtxs = new filtContexts;
   for (size_t i = 0; i < c->outParams.size(); ++i) {
     const AVFilter *buffersink = avfilter_get_by_name(0 == c->filterType.compare("audio")?"abuffersink":"buffersink");
-    AVFilterContext *sinkCtx = nullptr;
-    ret = avfilter_graph_create_filter(&sinkCtx, buffersink, c->outNames[i].c_str(), NULL, NULL, c->filterGraph);
-    if (ret < 0) {
+    // Allocate without initializing: the pix_fmts/sample_fmts/etc sink
+    // options are no longer runtime-settable, so they must be applied via
+    // av_opt_set_array() before avfilter_init_str() below.
+    AVFilterContext *sinkCtx = avfilter_graph_alloc_filter(c->filterGraph, buffersink, c->outNames[i].c_str());
+    if (sinkCtx == nullptr) {
       c->status = BEAMCODER_ERROR_ENOMEM;
       c->errorMsg = "Failed to allocate sink filter graph.";
       goto end;
@@ -989,31 +991,40 @@ void filtererExecute(napi_env env, void* data) {
     if (0 == c->filterType.compare("audio")) {
       auto p = c->outParams[i].find("sample_rates");
       if (p != c->outParams[i].end()) {
-        const int out_sample_rates[] = { std::stoi(p->second.c_str()), -1 };
-        ret = av_opt_set_bin(sinkCtx, "sample_rates", (const uint8_t*) out_sample_rates,
-                             sizeof(out_sample_rates), AV_OPT_SEARCH_CHILDREN);
+        const char *sampleRates = p->second.c_str();
+        ret = av_opt_set_array(sinkCtx, "samplerates", AV_OPT_SEARCH_CHILDREN,
+                                0, 1, AV_OPT_TYPE_STRING, &sampleRates);
         if (ret < 0) { av_log(NULL, AV_LOG_ERROR, "Cannot set output sample rate\n"); }
       }
       p = c->outParams[i].find("sample_fmts");
       if (p != c->outParams[i].end()) {
-        const enum AVSampleFormat out_sample_fmts[] = { av_get_sample_fmt(p->second.c_str()), AV_SAMPLE_FMT_NONE };
-        ret = av_opt_set_bin(sinkCtx, "sample_fmts", (const uint8_t*) out_sample_fmts,
-                             sizeof(out_sample_fmts), AV_OPT_SEARCH_CHILDREN);
+        const char *sampleFmts = p->second.c_str();
+        ret = av_opt_set_array(sinkCtx, "sample_formats", AV_OPT_SEARCH_CHILDREN,
+                                0, 1, AV_OPT_TYPE_STRING, &sampleFmts);
         if (ret < 0) { av_log(NULL, AV_LOG_ERROR, "Cannot set output sample format\n"); }
       }
       p = c->outParams[i].find("channel_layouts");
       if (p != c->outParams[i].end()) {
-        ret = av_opt_set(sinkCtx, "ch_layouts", p->second.c_str(), AV_OPT_SEARCH_CHILDREN);
+        const char *channelLayouts = p->second.c_str();
+        ret = av_opt_set_array(sinkCtx, "channel_layouts", AV_OPT_SEARCH_CHILDREN,
+                                0, 1, AV_OPT_TYPE_STRING, &channelLayouts);
         if (ret < 0) { av_log(NULL, AV_LOG_ERROR, "Cannot set output channel layout\n"); }
       }
     } else {
       auto p = c->outParams[i].find("pix_fmts");
       if (p != c->outParams[i].end()) {
-        enum AVPixelFormat pix_fmts[] = { av_get_pix_fmt(p->second.c_str()), AV_PIX_FMT_NONE };
-        ret = av_opt_set_bin(sinkCtx, "pix_fmts", (const uint8_t*) pix_fmts,
-                             sizeof(pix_fmts), AV_OPT_SEARCH_CHILDREN);
+        const char *pixFmts = p->second.c_str();
+        ret = av_opt_set_array(sinkCtx, "pixel_formats", AV_OPT_SEARCH_CHILDREN,
+                                0, 1, AV_OPT_TYPE_STRING, &pixFmts);
         if (ret < 0) { av_log(NULL, AV_LOG_ERROR, "Cannot set output pixel format\n"); }
       }
+    }
+
+    ret = avfilter_init_str(sinkCtx, NULL);
+    if (ret < 0) {
+      c->status = BEAMCODER_ERROR_ENOMEM;
+      c->errorMsg = "Failed to initialize sink filter graph.";
+      goto end;
     }
 
     inputs[i]->name       = av_strdup(c->outNames[i].c_str());
