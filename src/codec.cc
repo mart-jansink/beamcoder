@@ -6149,13 +6149,12 @@ napi_value getCodecCtxProps(napi_env env, napi_callback_info info) {
 
   status = napi_create_object(env, &result);
   CHECK_STATUS;
-  // No replacement is documented for AVCodecContext.properties.
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-  status = beam_set_bool(env, result, "LOSSLESS", codec->properties & FF_CODEC_PROPERTY_LOSSLESS);
+  // AVCodecContext.properties was removed upstream; the same information is
+  // now only available per-frame via AV_FRAME_FLAG_LOSSLESS on AVFrame, so
+  // there is no context-level value left to report here.
+  status = beam_set_bool(env, result, "LOSSLESS", false);
   CHECK_STATUS;
-  status = beam_set_bool(env, result, "CLOSED_CAPTIONS", codec->properties & FF_CODEC_PROPERTY_CLOSED_CAPTIONS);
-  #pragma GCC diagnostic pop
+  status = beam_set_bool(env, result, "CLOSED_CAPTIONS", false);
   CHECK_STATUS;
 
   return result;
