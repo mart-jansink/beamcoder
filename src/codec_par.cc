@@ -922,7 +922,17 @@ napi_value getCodecParChanLayout(napi_env env, napi_callback_info info) {
   status = napi_get_cb_info(env, info, 0, nullptr, nullptr, (void**) &c);
   CHECK_STATUS;
 
-  av_channel_layout_describe(&c->ch_layout, enumName, 64);
+  if (c->ch_layout.order == AV_CHANNEL_ORDER_UNSPEC && c->ch_layout.nb_channels > 0) {
+    // the layout is unspecified, e.g. for a plain WAVEFORMATEX that carries
+    // no channel mask, so guess a default one for this channel count instead
+    // of just describing it as "N channels"
+    AVChannelLayout guessed = { AV_CHANNEL_ORDER_UNSPEC, 0, { 0 }, nullptr };
+    av_channel_layout_default(&guessed, c->ch_layout.nb_channels);
+    av_channel_layout_describe(&guessed, enumName, 64);
+    av_channel_layout_uninit(&guessed);
+  } else {
+    av_channel_layout_describe(&c->ch_layout, enumName, 64);
+  }
   status = napi_create_string_utf8(env, enumName, NAPI_AUTO_LENGTH, &result);
   CHECK_STATUS;
 
