@@ -131,46 +131,31 @@ async function win32() {
 
 async function linux() {
   console.log('Checking FFmpeg dependencies for Beam Coder on Linux.');
-  const { stdout } = await execFile('ldconfig', ['-p']).catch(console.error);
-  let result = 0;
 
-  if (stdout.indexOf('libavcodec.so.60') < 0) {
-    console.error('libavcodec.so.60 is not installed.');
-    result = 1;
-  }
-  if (stdout.indexOf('libavformat.so.60') < 0) {
-    console.error('libavformat.so.60 is not installed.');
-    result = 1;
-  }
-  if (stdout.indexOf('libavdevice.so.60') < 0) {
-    console.error('libavdevice.so.60 is not installed.');
-    result = 1;
-  }
-  if (stdout.indexOf('libavfilter.so.9') < 0) {
-    console.error('libavfilter.so.9 is not installed.');
-    result = 1;
-  }
-  if (stdout.indexOf('libavutil.so.58') < 0) {
-    console.error('libavutil.so.58 is not installed.');
-    result = 1;
-  }
-  if (stdout.indexOf('libpostproc.so.57') < 0) {
-    console.error('libpostproc.so.57 is not installed.');
-    result = 1;
-  }
-  if (stdout.indexOf('libswresample.so.4') < 0) {
-    console.error('libswresample.so.4 is not installed.');
-    result = 1;
-  }
-  if (stdout.indexOf('libswscale.so.7') < 0) {
-    console.error('libswscale.so.7 is not installed.');
-    result = 1;
+  // the minimum major versions of FFmpeg 9's libraries, as found through
+  // `pkg-config` just like `binding.gyp` does
+  const libraries = {
+    libavcodec: 63,
+    libavdevice: 63,
+    libavfilter: 12,
+    libavformat: 63,
+    libavutil: 61,
+    libswresample: 7,
+    libswscale: 10,
+  };
+
+  let result = 0;
+  for (const [ library, major ] of Object.entries(libraries)) {
+    try {
+      await execFile('pkg-config', [ `--atleast-version=${major}`, library ]);
+    } catch (err) {
+      console.error(`${library} >= ${major} (FFmpeg 9) is not installed.`);
+      result = 1;
+    }
   }
 
   if (result === 1) {
-    console.log(`Try running the following (Ubuntu/Debian):
-sudo add-apt-repository ppa:jonathonf/ffmpeg-4
-sudo apt-get install libavcodec-dev libavformat-dev libavdevice-dev libavfilter-dev libavutil-dev libpostproc-dev libswresample-dev libswscale-dev`);
+    console.log(`Install the FFmpeg 9 development libraries (and pkg-config), e.g. by building FFmpeg from source with --enable-shared.`);
     process.exit(1);
   }
   return result;
